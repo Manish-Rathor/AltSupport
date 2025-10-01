@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test Page</h1>
+    <button onclick="testAutocomplete()">Test Autocomplete API</button>
+    <button onclick="testTicketDetails()">Test Ticket Details API</button>
+    <div id="results"></div>
+
+    <script>
+        async function testAutocomplete() {
+            try {
+                const response = await fetch('/api/tickets/autocomplete?query=PRODSUP-28731&limit=1');
+                const data = await response.json();
+                document.getElementById('results').innerHTML = 
+                    '<h3>Autocomplete Results:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    '<h3>Autocomplete Error:</h3>' + error.message;
+            }
+        }
+
+        async function testTicketDetails() {
+            try {
+                const response = await fetch('/api/tickets/details/PRODSUP-28731');
+                const data = await response.json();
+                document.getElementById('results').innerHTML = 
+                    '<h3>Ticket Details Results:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    '<h3>Ticket Details Error:</h3>' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

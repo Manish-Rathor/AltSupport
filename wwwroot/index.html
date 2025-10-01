@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alt Support - Ticket Search with Autocomplete</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            position: relative;
+        }
+
+        .search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.highlighted {
+            background-color: #f8f9fa;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .ticket-key {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .ticket-title {
+            color: #333;
+            margin: 2px 0;
+        }
+
+        .ticket-meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .pr-links-preview {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .pr-link-small {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .pr-link-small:hover {
+            background: #218838;
+            color: white;
+            text-decoration: none;
+        }
+
+        .more-prs {
+            font-size: 0.75rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        .search-options {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .checkbox-group {
+            display: inline-block;
+            margin: 0 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .results-section {
+            padding: 30px;
+        }
+
+        .ticket-details {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .ticket-details.show {
+            display: block;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .detail-title {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .detail-title h2 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.4rem;
+        }
+
+        .detail-title .ticket-key-large {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .detail-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .meta-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .meta-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .pr-links {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-left: 5px solid #28a745;
+        }
+
+        .pr-links h3 {
+            color: #333;
+            margin-bottom: 18px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pr-links h3:before {
+            content: "🔗";
+            font-size: 1.5rem;
+        }
+
+        .pr-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: 8px 8px 8px 0;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 6px rgba(40, 167, 69, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pr-link:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .pr-link:hover:before {
+            left: 100%;
+        }
+
+        .pr-link:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(40, 167, 69, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+
+        .description-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .description-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .description-content {
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .jira-link {
+            display: inline-block;
+            background: #0052cc;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .jira-link:hover {
+            background: #0043a6;
+            color: white;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: none;
+        }
+
+        .clear-btn:hover {
+            background: #f0f0f0;
+        }
+
+        @media (max-width: 768px) {
+            .detail-meta {
+                grid-template-columns: 1fr;
+            }
+            
+            .detail-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-options {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 Alt Support</h1>
+            <p>Smart Jira Ticket Search with Autocomplete</p>
+        </div>
+
+        <div class="search-section">
+            <div class="search-container">
+                <input type="text" 
+                       id="searchInput" 
+                       class="search-input" 
+                       placeholder="Search tickets (e.g., PRODSUP-28731, Custom location, or any keyword...)"
+                       autocomplete="off">
+                <button id="clearBtn" class="clear-btn">&times;</button>
+                <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+            </div>
+            
+            <div class="search-options">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="jiraOnly" checked>
+                    <label for="jiraOnly">Search Jira Only</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="autoSelect">
+                    <label for="autoSelect">Auto-select first result</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div id="ticketDetails" class="ticket-details">
+                <div id="loadingIndicator" class="loading">Loading ticket details...</div>
+                <div id="ticketContent" style="display: none;"></div>
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TicketSearch {
+            constructor() {
+                this.searchInput = document.getElementById('searchInput');
+                this.autocompleteDropdown = document.getElementById('autocompleteDropdown');
+                this.ticketDetails = document.getElementById('ticketDetails');
+                this.loadingIndicator = document.getElementById('loadingIndicator');
+                this.ticketContent = document.getElementById('ticketContent');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.jiraOnlyCheckbox = document.getElementById('jiraOnly');
+                this.autoSelectCheckbox = document.getElementById('autoSelect');
+                
+                this.debounceTimer = null;
+                this.selectedIndex = -1;
+                this.suggestions = [];
+                
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                this.searchInput.addEventListener('input', (e) => this.handleInput(e));
+                this.searchInput.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                this.searchInput.addEventListener('blur', () => this.handleBlur());
+                this.searchInput.addEventListener('focus', () => this.handleFocus());
+                this.clearBtn.addEventListener('click', () => this.clearSearch());
+                
+                // Hide dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.searchInput.contains(e.target) && !this.autocompleteDropdown.contains(e.target)) {
+                        this.hideAutocomplete();
+                    }
+                });
+            }
+
+            handleInput(e) {
+                const query = e.target.value.trim();
+                
+                // Show/hide clear button
+                this.clearBtn.style.display = query ? 'block' : 'none';
+                
+                if (query.length >= 2) {
+                    clearTimeout(this.debounceTimer);
+                    this.debounceTimer = setTimeout(() => {
+                        this.getAutocompleteSuggestions(query);
+                    }, 300);
+                } else {
+                    this.hideAutocomplete();
+                    this.hideTicketDetails();
+                }
+            }
+
+            handleKeyDown(e) {
+                if (!this.autocompleteDropdown.style.display || this.autocompleteDropdown.style.display === 'none') {
+                    return;
+                }
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.selectedIndex = Math.min(this.selectedIndex + 1, this.suggestions.length - 1);
+                        this.highlightSuggestion();
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+                        this.highlightSuggestion();
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (this.selectedIndex >= 0) {
+                            this.selectSuggestion(this.suggestions[this.selectedIndex]);
+                        }
+                        break;
+                    case 'Escape':
+                        this.hideAutocomplete();
+                        break;
+                }
+            }
+
+            handleBlur() {
+                // Delay hiding to allow clicking on suggestions
+                setTimeout(() => {
+                    this.hideAutocomplete();
+                }, 150);
+            }
+
+            handleFocus() {
+                const query = this.searchInput.value.trim();
+                if (query.length >= 2 && this.suggestions.length > 0) {
+                    this.showAutocomplete();
+                }
+            }
+
+            clearSearch() {
+                this.searchInput.value = '';
+                this.clearBtn.style.display = 'none';
+                this.hideAutocomplete();
+                this.hideTicketDetails();
+                this.searchInput.focus();
+            }
+
+            async getAutocompleteSuggestions(query) {
+                try {
+                    const response = await fetch(`/api/tickets/autocomplete?query=${encodeURIComponent(query)}&limit=8`);
+                    const data = await response.json();
+                    
+                    this.suggestions = data.suggestions || [];
+                    this.selectedIndex = -1;
+                    
+                    if (this.suggestions.length > 0) {
+                        this.renderAutocomplete();
+                        this.showAutocomplete();
+                        
+                        // Auto-select first result if enabled
+                        if (this.autoSelectCheckbox.checked) {
+                            setTimeout(() => {
+                                this.selectSuggestion(this.suggestions[0]);
+                            }, 100);
+                        }
+                    } else {
+                        this.hideAutocomplete();
+                    }
+                } catch (error) {
+                    console.error('Error fetching suggestions:', error);
+                    this.hideAutocomplete();
+                }
+            }
+
+            renderAutocomplete() {
+                this.autocompleteDropdown.innerHTML = '';
+                
+                this.suggestions.forEach((suggestion, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    
+                    // Create PR links display for autocomplete
+                    let prLinksHtml = '';
+                    if (suggestion.prLinks && suggestion.prLinks.length > 0) {
+                        const prLinks = suggestion.prLinks.slice(0, 2).map(link => {
+                            const prNumber = this.extractPRNumber(link);
+                            return `<a href="${link}" target="_blank" class="pr-link-small">🔗 ${prNumber}</a>`;
+                        }).join('');
+                        prLinksHtml = `<div class="pr-links-preview">${prLinks}${suggestion.prLinks.length > 2 ? ' <span class="more-prs">+' + (suggestion.prLinks.length - 2) + ' more</span>' : ''}</div>`;
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="ticket-key">${suggestion.ticketKey}</div>
+                        <div class="ticket-title">${this.escapeHtml(suggestion.title)}</div>
+                        <div class="ticket-meta">
+                            Status: ${suggestion.status} | Priority: ${suggestion.priority} | 
+                            Project: ${suggestion.projectKey}
+                            ${suggestion.assignee ? `| Assignee: ${suggestion.assignee}` : ''}
+                        </div>
+                        ${prLinksHtml}
+                    `;
+                    
+                    item.addEventListener('click', () => {
+                        this.selectSuggestion(suggestion);
+                    });
+                    
+                    this.autocompleteDropdown.appendChild(item);
+                });
+            }
+
+            highlightSuggestion() {
+                const items = this.autocompleteDropdown.querySelectorAll('.autocomplete-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('highlighted', index === this.selectedIndex);
+                });
+            }
+
+            showAutocomplete() {
+                this.autocompleteDropdown.style.display = 'block';
+            }
+
+            hideAutocomplete() {
+                this.autocompleteDropdown.style.display = 'none';
+                this.selectedIndex = -1;
+            }
+
+            selectSuggestion(suggestion) {
+                this.searchInput.value = suggestion.ticketKey;
+                this.hideAutocomplete();
+                this.clearBtn.style.display = 'block';
+                this.loadTicketDetails(suggestion.ticketKey);
+            }
+
+            async loadTicketDetails(ticketKey) {
+                try {
+                    this.showTicketDetails();
+                    this.showLoading();
+                    
+                    const response = await fetch(`/api/tickets/details/${encodeURIComponent(ticketKey)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to load ticket: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const ticket = await response.json();
+                    this.renderTicketDetails(ticket);
+                } catch (error) {
+                    console.error('Error loading ticket details:', error);
+                    this.showError(`Failed to load ticket details: ${error.message}`);
+                }
+            }
+
+            renderTicketDetails(ticket) {
+                const content = `
+                    <div class="detail-header">
+                        <div class="detail-title">
+                            <h2>${this.escapeHtml(ticket.title)}</h2>
+                            <div class="ticket-key-large">${ticket.ticketKey}</div>
+                        </div>
+                        <a href="${ticket.jiraUrl}" target="_blank" class="jira-link">
+                            🔗 Open in Jira
+                        </a>
+                    </div>
+
+                    <div class="detail-meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Status</div>
+                            <div class="meta-value">${ticket.status || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Priority</div>
+                            <div class="meta-value">${ticket.priority || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Assignee</div>
+                            <div class="meta-value">${ticket.assignee || 'Unassigned'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Reporter</div>
+                            <div class="meta-value">${ticket.reporter || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Project</div>
+                            <div class="meta-value">${ticket.projectKey || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Type</div>
+                            <div class="meta-value">${ticket.ticketType || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Created</div>
+                            <div class="meta-value">${this.formatDate(ticket.createdDate)}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Updated</div>
+                            <div class="meta-value">${this.formatDate(ticket.updatedDate)}</div>
+                        </div>
+                    </div>
+
+                    ${this.renderPRLinks(ticket.prLinks)}
+
+                    ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
+
+                    <div class="description-section">
+                        <h3>📝 Description</h3>
+                        <div class="description-content">${this.escapeHtml(ticket.description || 'No description available')}</div>
+                    </div>
+                `;
+
+                this.ticketContent.innerHTML = content;
+                this.hideLoading();
+                this.hideError();
+                this.ticketContent.style.display = 'block';
+            }
+
+            renderPRLinks(prLinks) {
+                if (!prLinks || prLinks.length === 0) {
+                    return '';
+                }
+
+                const links = prLinks.map(link => 
+                    `<a href="${link}" target="_blank" class="pr-link">📋 ${this.extractPRNumber(link)}</a>`
+                ).join('');
+
+                return `
+                    <div class="pr-links">
+                        <h3>🔗 Pull Request Links</h3>
+                        ${links}
+                    </div>
+                `;
+            }
+
+            renderLabelsAndComponents(labels, components) {
+                let content = '';
+                
+                if (labels && labels.length > 0) {
+                    const labelItems = labels.map(label => 
+                        `<span class="pr-link" style="background: #28a745;">${label}</span>`
+                    ).join('');
+                    content += `
+                        <div class="pr-links">
+                            <h3>🏷️ Labels</h3>
+                            ${labelItems}
+                        </div>
+                    `;
+                }
+                
+                if (components && components.length > 0) {
+                    const componentItems = components.map(comp => 
+                        `<span class="pr-link" style="background: #fd7e14;">${comp}</span>`
+                    ).join('');
+                    content += `
+                        <div class="pr-links">
+                            <h3>🧩 Components</h3>
+                            ${componentItems}
+                        </div>
+                    `;
+                }
+                
+                return content;
+            }
+
+            extractPRNumber(prLink) {
+                const match = prLink.match(/pull\/(\d+)/);
+                return match ? `PR #${match[1]}` : 'Pull Request';
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                } catch {
+                    return dateString;
+                }
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showTicketDetails() {
+                this.ticketDetails.classList.add('show');
+            }
+
+            hideTicketDetails() {
+                this.ticketDetails.classList.remove('show');
+            }
+
+            showLoading() {
+                this.loadingIndicator.style.display = 'block';
+            }
+
+            hideLoading() {
+                this.loadingIndicator.style.display = 'none';
+            }
+
+            showError(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.style.display = 'block';
+                this.hideLoading();
+            }
+
+            hideError() {
+                this.errorMessage.style.display = 'none';
+            }
+        }
+
+        // Initialize the search functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            new TicketSearch();
+        });
+    </script>
+</body>
+</html>

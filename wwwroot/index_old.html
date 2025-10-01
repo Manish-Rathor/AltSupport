@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alt Support - Ticket Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-options {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .search-examples {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .search-examples h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .example-queries {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .example-query {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #667eea;
+            cursor: pointer;
+            border: 1px solid #667eea;
+            transition: all 0.2s ease;
+        }
+
+        .example-query:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .results-section {
+            padding: 30px;
+            min-height: 400px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .results-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .stat-local {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stat-jira {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .ticket-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .ticket-card {
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .ticket-key {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .ticket-source {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .source-local {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .source-jira {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .ticket-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #343a40;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .priority-high { color: #dc3545; font-weight: 600; }
+        .priority-medium { color: #fd7e14; font-weight: 600; }
+        .priority-low { color: #28a745; font-weight: 600; }
+
+        .status-open { color: #007bff; }
+        .status-in-progress { color: #fd7e14; }
+        .status-closed { color: #28a745; }
+
+        .ticket-description {
+            color: #6c757d;
+            line-height: 1.5;
+            margin-bottom: 15px;
+            max-height: 100px;
+            overflow: hidden;
+        }
+
+        .ticket-dates {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .no-results-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .search-input {
+                min-width: 100%;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .results-stats {
+                flex-wrap: wrap;
+            }
+            
+            .ticket-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎫 Alt Support</h1>
+            <p>Enhanced Ticket Search with Jira Integration</p>
+        </div>
+
+        <div class="search-section">
+            <form class="search-form" id="searchForm">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search tickets... (e.g., priority:high, status:open, or any text)"
+                    autocomplete="off"
+                >
+                <button type="submit" class="search-btn" id="searchBtn">
+                    🔍 Search
+                </button>
+            </form>
+
+            <div class="search-options">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="includeJira" checked>
+                    <label for="includeJira">Include Jira Results</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="jiraOnly">
+                    <label for="jiraOnly">Jira Only (Direct API)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="saveJiraResults">
+                    <label for="saveJiraResults">Save Jira Results to Local DB</label>
+                </div>
+            </div>
+
+            <div class="search-examples">
+                <h4>💡 Search Examples:</h4>
+                <div class="example-queries">
+                    <span class="example-query" onclick="setSearchQuery('priority:high')">priority:high</span>
+                    <span class="example-query" onclick="setSearchQuery('status:open')">status:open</span>
+                    <span class="example-query" onclick="setSearchQuery('assignee:currentUser()')">assignee:currentUser()</span>
+                    <span class="example-query" onclick="setSearchQuery('type:bug')">type:bug</span>
+                    <span class="example-query" onclick="setSearchQuery('project:PROJ')">project:PROJ</span>
+                    <span class="example-query" onclick="setSearchQuery('created:today')">created:today</span>
+                    <span class="example-query" onclick="setSearchQuery('updated:week')">updated:week</span>
+                    <span class="example-query" onclick="setSearchQuery('automation')">automation</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div id="loadingDiv" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Searching tickets...</p>
+            </div>
+
+            <div id="resultsDiv">
+                <div class="no-results">
+                    <div class="no-results-icon">🔍</div>
+                    <h3>Ready to Search</h3>
+                    <p>Enter a search term above to find tickets from your local database and Jira.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const includeJiraCheckbox = document.getElementById('includeJira');
+        const jiraOnlyCheckbox = document.getElementById('jiraOnly');
+        const saveJiraResultsCheckbox = document.getElementById('saveJiraResults');
+        const loadingDiv = document.getElementById('loadingDiv');
+        const resultsDiv = document.getElementById('resultsDiv');
+
+        // Handle Jira Only checkbox logic
+        jiraOnlyCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                includeJiraCheckbox.checked = true;
+                includeJiraCheckbox.disabled = true;
+                saveJiraResultsCheckbox.disabled = true;
+            } else {
+                includeJiraCheckbox.disabled = false;
+                saveJiraResultsCheckbox.disabled = false;
+            }
+        });
+
+        // Handle Include Jira checkbox logic
+        includeJiraCheckbox.addEventListener('change', (e) => {
+            if (!e.target.checked) {
+                jiraOnlyCheckbox.checked = false;
+                saveJiraResultsCheckbox.checked = false;
+            }
+        });
+
+        // Set search query from examples
+        function setSearchQuery(query) {
+            searchInput.value = query;
+            searchInput.focus();
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        // Get priority class
+        function getPriorityClass(priority) {
+            if (!priority) return '';
+            const p = priority.toLowerCase();
+            if (p.includes('high') || p.includes('critical') || p.includes('urgent')) return 'priority-high';
+            if (p.includes('medium') || p.includes('normal')) return 'priority-medium';
+            if (p.includes('low') || p.includes('minor')) return 'priority-low';
+            return '';
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            if (!status) return '';
+            const s = status.toLowerCase().replace(/\s+/g, '-');
+            if (s.includes('open') || s.includes('new') || s.includes('todo')) return 'status-open';
+            if (s.includes('progress') || s.includes('development') || s.includes('review')) return 'status-in-progress';
+            if (s.includes('closed') || s.includes('done') || s.includes('resolved')) return 'status-closed';
+            return '';
+        }
+
+        // Render search results
+        function renderResults(data) {
+            if (!data.tickets || data.tickets.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">📭</div>
+                        <h3>No tickets found</h3>
+                        <p>Try a different search term or check your Jira configuration.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const resultsHtml = `
+                <div class="results-header">
+                    <h2>Search Results for "${data.query}"</h2>
+                    <div class="results-stats">
+                        <span class="stat-item">Total: ${data.totalResults}</span>
+                        <span class="stat-item stat-local">Local: ${data.localResults}</span>
+                        <span class="stat-item stat-jira">Jira: ${data.jiraResults}</span>
+                    </div>
+                </div>
+                <div class="ticket-list">
+                    ${data.tickets.map(ticket => `
+                        <div class="ticket-card">
+                            <div class="ticket-header">
+                                <span class="ticket-key">${ticket.ticketKey}</span>
+                                <span class="ticket-source source-${ticket.source.toLowerCase()}">
+                                    ${ticket.source}
+                                </span>
+                            </div>
+                            <h3 class="ticket-title">${ticket.title}</h3>
+                            <div class="ticket-meta">
+                                <div class="meta-item">
+                                    <strong>Status:</strong> 
+                                    <span class="${getStatusClass(ticket.status)}">${ticket.status || 'N/A'}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <strong>Priority:</strong> 
+                                    <span class="${getPriorityClass(ticket.priority)}">${ticket.priority || 'N/A'}</span>
+                                </div>
+                                <div class="meta-item">
+                                    <strong>Assignee:</strong> ${ticket.assignee || 'Unassigned'}
+                                </div>
+                                <div class="meta-item">
+                                    <strong>Project:</strong> ${ticket.projectKey || 'N/A'}
+                                </div>
+                            </div>
+                            <div class="ticket-description">
+                                ${ticket.description ? ticket.description.substring(0, 200) + (ticket.description.length > 200 ? '...' : '') : 'No description available'}
+                            </div>
+                            <div class="ticket-dates">
+                                <span><strong>Created:</strong> ${formatDate(ticket.createdDate)}</span>
+                                ${ticket.updatedDate ? `<span><strong>Updated:</strong> ${formatDate(ticket.updatedDate)}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            resultsDiv.innerHTML = resultsHtml;
+        }
+
+        // Show error
+        function showError(message) {
+            resultsDiv.innerHTML = `
+                <div class="error">
+                    <strong>❌ Error:</strong> ${message}
+                </div>
+                <div class="no-results">
+                    <div class="no-results-icon">⚠️</div>
+                    <h3>Search Failed</h3>
+                    <p>Please check your API connection and try again.</p>
+                </div>
+            `;
+        }
+
+        // Perform search
+        async function performSearch(query) {
+            if (!query.trim()) {
+                showError('Please enter a search term');
+                return;
+            }
+
+            // Show loading
+            loadingDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            searchBtn.disabled = true;
+            searchBtn.textContent = 'Searching...';
+
+            try {
+                const includeJira = includeJiraCheckbox.checked;
+                const jiraOnly = jiraOnlyCheckbox.checked;
+                const saveJiraResults = saveJiraResultsCheckbox.checked && !jiraOnly;
+                
+                const params = new URLSearchParams({
+                    query: query,
+                    includeJira: includeJira,
+                    jiraOnly: jiraOnly,
+                    saveJiraResults: saveJiraResults,
+                    pageSize: 50
+                });
+
+                let endpoint = '/api/tickets/search';
+                if (jiraOnly) {
+                    // Use the dedicated Jira-only endpoint for better performance
+                    endpoint = '/api/tickets/search/jira';
+                    params.delete('includeJira');
+                    params.delete('saveJiraResults');
+                    params.set('maxResults', '50');
+                }
+
+                const response = await fetch(`${endpoint}?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                renderResults(data);
+
+            } catch (error) {
+                console.error('Search error:', error);
+                showError(error.message || 'Failed to search tickets');
+            } finally {
+                // Hide loading
+                loadingDiv.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 Search';
+            }
+        }
+
+        // Handle form submission
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            performSearch(query);
+        });
+
+        // Handle Enter key in search input
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = searchInput.value.trim();
+                performSearch(query);
+            }
+        });
+
+        // Auto-focus search input
+        searchInput.focus();
+    </script>
+</body>
+</html>
