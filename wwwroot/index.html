@@ -660,6 +660,8 @@
                         </a>
                     </div>
 
+                    ${this.renderPRLinks(ticket.prLinks)}
+
                     <div class="detail-meta">
                         <div class="meta-item">
                             <div class="meta-label">Status</div>
@@ -695,8 +697,6 @@
                         </div>
                     </div>
 
-                    ${this.renderPRLinks(ticket.prLinks)}
-
                     ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
 
                     <div class="description-section">
@@ -713,19 +713,91 @@
 
             renderPRLinks(prLinks) {
                 if (!prLinks || prLinks.length === 0) {
-                    return '';
+                    return `
+                        <div class="pr-links" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 5px solid #6c757d;">
+                            <h3>🔗 Pull Request Links</h3>
+                            <p style="color: #666; font-style: italic; margin: 0;">No PR links found for this ticket</p>
+                        </div>
+                    `;
                 }
 
-                const links = prLinks.map(link => 
-                    `<a href="${link}" target="_blank" class="pr-link">📋 ${this.extractPRNumber(link)}</a>`
-                ).join('');
+                const links = prLinks.map((link, index) => {
+                    const prInfo = this.extractPRInfo(link);
+                    return `
+                        <div class="pr-link-container" style="margin: 10px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <a href="${link}" target="_blank" class="pr-link" style="flex: 0 0 auto;">
+                                🔗 ${prInfo.displayText}
+                            </a>
+                            <button class="copy-pr-btn" onclick="navigator.clipboard.writeText('${link}').then(() => { 
+                                event.target.textContent = '✓ Copied!'; 
+                                setTimeout(() => event.target.textContent = '📋 Copy', 2000); 
+                            })" style="
+                                background: #6c757d;
+                                color: white;
+                                border: none;
+                                padding: 8px 15px;
+                                border-radius: 20px;
+                                cursor: pointer;
+                                font-size: 0.85rem;
+                                font-weight: 500;
+                                transition: background 0.3s ease;
+                            " onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
+                                📋 Copy
+                            </button>
+                            <span style="color: #666; font-size: 0.85rem; font-family: monospace;">${prInfo.repoName}</span>
+                        </div>
+                    `;
+                }).join('');
 
                 return `
-                    <div class="pr-links">
-                        <h3>🔗 Pull Request Links</h3>
+                    <div class="pr-links" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-left: 5px solid #28a745;">
+                        <h3>🔗 Pull Request Links (${prLinks.length})</h3>
                         ${links}
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                            <button onclick="
+                                const allLinks = ${JSON.stringify(prLinks).replace(/"/g, '&quot;')};
+                                const text = allLinks.join('\\n');
+                                navigator.clipboard.writeText(text).then(() => {
+                                    event.target.textContent = '✓ All Links Copied!';
+                                    setTimeout(() => event.target.textContent = '📋 Copy All PR Links', 2000);
+                                });
+                            " style="
+                                background: #28a745;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 25px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                                font-weight: 600;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 3px 6px rgba(40, 167, 69, 0.3);
+                            " onmouseover="this.style.background='#218838'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#28a745'; this.style.transform='translateY(0)'">
+                                📋 Copy All PR Links
+                            </button>
+                        </div>
                     </div>
                 `;
+            }
+
+            extractPRInfo(prLink) {
+                // Extract repository name and PR number from GitHub URL
+                const match = prLink.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+                if (match) {
+                    const org = match[1];
+                    const repo = match[2];
+                    const prNumber = match[3];
+                    return {
+                        displayText: `PR #${prNumber}`,
+                        repoName: `${org}/${repo}`,
+                        prNumber: prNumber
+                    };
+                }
+                return {
+                    displayText: 'Pull Request',
+                    repoName: 'Unknown Repository',
+                    prNumber: null
+                };
             }
 
             renderLabelsAndComponents(labels, components) {
