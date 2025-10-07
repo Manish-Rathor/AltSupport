@@ -85,6 +85,8 @@ namespace Alt_Support.Services
         {
             try
             {
+                _logger.LogInformation($"Executing JQL query: {jqlQuery}");
+                
                 var requestBody = new
                 {
                     jql = jqlQuery,
@@ -93,18 +95,32 @@ namespace Alt_Support.Services
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
                         "created", "updated", "resolutiondate", "resolution", "customfield_10144"
-                    },
-                    expand = new[] { "changelog" }
+                    }
                 };
 
                 var json = JsonSerializer.Serialize(requestBody);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("/rest/api/3/search", content);
+                var response = await _httpClient.PostAsync("/rest/api/3/search/jql", content);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning($"Failed to search tickets: {response.StatusCode}");
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning($"Failed to search tickets with JQL '{jqlQuery}': {response.StatusCode} - {errorContent}");
+                    
+                    // If we get a 410 or 400, the JQL might be invalid, try a simpler query
+                    if (response.StatusCode == System.Net.HttpStatusCode.Gone || 
+                        response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        _logger.LogInformation("Attempting fallback search with simpler JQL");
+                        // Try a simpler text search without special operators
+                        var simpleJql = ExtractSimpleSearchTerm(jqlQuery);
+                        if (simpleJql != jqlQuery)
+                        {
+                            return await SearchTicketsWithSimpleJql(simpleJql, maxResults);
+                        }
+                    }
+                    
                     return new List<TicketInfo>();
                 }
 
@@ -131,11 +147,86 @@ namespace Alt_Support.Services
                     }
                 }
 
+                _logger.LogInformation($"Found {tickets.Count} tickets for query: {jqlQuery}");
                 return tickets;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error searching tickets with JQL: {jqlQuery}");
+                return new List<TicketInfo>();
+            }
+        }
+
+        private string ExtractSimpleSearchTerm(string jqlQuery)
+        {
+            // Extract the search term from complex JQL and create a simpler query
+            var match = System.Text.RegularExpressions.Regex.Match(jqlQuery, @"~\s*""([^""]+)""");
+            if (match.Success)
+            {
+                var searchTerm = match.Groups[1].Value.TrimEnd('*');
+                return $"summary ~ \"{searchTerm}*\" OR description ~ \"{searchTerm}*\" ORDER BY updated DESC";
+            }
+            return jqlQuery;
+        }
+
+        private async Task<List<TicketInfo>> SearchTicketsWithSimpleJql(string jqlQuery, int maxResults)
+        {
+            try
+            {
+                _logger.LogInformation($"Executing fallback JQL query: {jqlQuery}");
+                
+                var requestBody = new
+                {
+                    jql = jqlQuery,
+                    maxResults = maxResults,
+                    fields = new[] { 
+                        "summary", "description", "issuetype", "status", "priority", 
+                        "assignee", "reporter", "project", "labels", "components", 
+                        "created", "updated", "resolutiondate", "resolution", "customfield_10144"
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(requestBody);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync("/rest/api/3/search/jql", content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning($"Fallback search also failed: {response.StatusCode} - {errorContent}");
+                    return new List<TicketInfo>();
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var options = new JsonSerializerOptions 
+                { 
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                options.Converters.Add(new JiraDateTimeConverter());
+                options.Converters.Add(new JiraNullableDateTimeConverter());
+                
+                var searchResult = JsonSerializer.Deserialize<JiraSearchResponse>(responseContent, options);
+
+                var tickets = new List<TicketInfo>();
+                if (searchResult?.Issues != null)
+                {
+                    foreach (var issue in searchResult.Issues)
+                    {
+                        var ticket = ConvertToTicketInfo(issue);
+                        if (ticket != null)
+                        {
+                            tickets.Add(ticket);
+                        }
+                    }
+                }
+
+                _logger.LogInformation($"Fallback search found {tickets.Count} tickets");
+                return tickets;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error in fallback search with JQL: {jqlQuery}");
                 return new List<TicketInfo>();
             }
         }

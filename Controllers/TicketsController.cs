@@ -520,7 +520,7 @@ namespace Alt_Support.Controllers
             // Check if it's a specific ticket key pattern (e.g., PROJ-123)
             if (System.Text.RegularExpressions.Regex.IsMatch(normalizedTerm, @"^[A-Z]+-\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             {
-                return $"key = \"{normalizedTerm.ToUpperInvariant()}\"";
+                return $"key = {normalizedTerm.ToUpperInvariant()}";
             }
             
             // Check for field-specific searches (priority:high, status:open, etc.)
@@ -556,12 +556,14 @@ namespace Alt_Support.Controllers
                         "month" => "updated >= startOfMonth()",
                         _ => $"updated >= \"{value}\""
                     },
-                    _ => $"text ~ \"{searchTerm}\"" // Fallback to text search
+                    _ => $"text ~ \"{searchTerm}*\" ORDER BY updated DESC" // Fallback to text search with wildcard
                 };
             }
             
-            // Default: search in summary, description, and comments
-            return $"(summary ~ \"{searchTerm}\" OR description ~ \"{searchTerm}\" OR comment ~ \"{searchTerm}\")";
+            // Default: search in summary and description with wildcard and order by updated
+            // Escape special characters in search term
+            var escapedTerm = searchTerm.Replace("\"", "\\\"");
+            return $"text ~ \"{escapedTerm}*\" ORDER BY updated DESC";
         }
 
         private List<string> ExtractPRLinks(string? description)
