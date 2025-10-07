@@ -37,6 +37,7 @@ namespace Alt_Support.Models
         [JsonConverter(typeof(JiraNullableDateTimeConverter))]
         public DateTime? Resolutiondate { get; set; }
         public ResolutionInfo? Resolution { get; set; }
+        public CustomField10144? PRLinksField { get; set; }
     }
 
     public class DescriptionField
@@ -51,6 +52,18 @@ namespace Alt_Support.Models
         public string Type { get; set; } = string.Empty;
         public List<ContentItem>? Content { get; set; }
         public string? Text { get; set; }
+        public List<Mark>? Marks { get; set; }
+    }
+
+    public class Mark
+    {
+        public string Type { get; set; } = string.Empty;
+        public MarkAttrs? Attrs { get; set; }
+    }
+
+    public class MarkAttrs
+    {
+        public string? Href { get; set; }
     }
 
     public class IssueTypeInfo
@@ -97,6 +110,13 @@ namespace Alt_Support.Models
     {
         public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+    }
+
+    public class CustomField10144
+    {
+        public string Type { get; set; } = string.Empty;
+        public int Version { get; set; }
+        public List<ContentItem>? Content { get; set; }
     }
 
     public class ChangelogInfo

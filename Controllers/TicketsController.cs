@@ -336,6 +336,57 @@ namespace Alt_Support.Controllers
         }
 
         /// <summary>
+        /// Debug endpoint to test Jira connectivity
+        /// </summary>
+        [HttpGet("debug/test-jira/{ticketKey}")]
+        public async Task<ActionResult<object>> TestJiraConnection(string ticketKey)
+        {
+            try
+            {
+                var results = new
+                {
+                    ticketKey = ticketKey,
+                    directFetch = (object?)null,
+                    searchFetch = (object?)null,
+                    jqlQuery = "",
+                    errors = new List<string>()
+                };
+
+                // Test direct fetch (like Postman)
+                try
+                {
+                    var directTicket = await _jiraService.GetTicketAsync(ticketKey);
+                    results = results with { directFetch = directTicket != null ? new { success = true, ticketKey = directTicket.TicketKey, title = directTicket.Title } : new { success = false, message = "No ticket returned" } };
+                }
+                catch (Exception ex)
+                {
+                    ((List<string>)results.errors).Add($"Direct fetch error: {ex.Message}");
+                }
+
+                // Test search fetch (like autocomplete)
+                try
+                {
+                    var jqlQuery = BuildJqlQuery(ticketKey);
+                    results = results with { jqlQuery = jqlQuery };
+                    
+                    var searchTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1);
+                    results = results with { searchFetch = new { success = searchTickets.Any(), count = searchTickets.Count, tickets = searchTickets.Select(t => new { t.TicketKey, t.Title }).ToList() } };
+                }
+                catch (Exception ex)
+                {
+                    ((List<string>)results.errors).Add($"Search fetch error: {ex.Message}");
+                }
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in test endpoint for ticket: {TicketKey}", ticketKey);
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Get autocomplete suggestions for search input
         /// </summary>
         [HttpGet("autocomplete")]
@@ -348,21 +399,46 @@ namespace Alt_Support.Controllers
                     return Ok(new { suggestions = new List<object>() });
                 }
 
-                // Search Jira for suggestions
-                var jqlQuery = BuildJqlQuery(query);
-                var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, limit);
+                var suggestions = new List<object>();
 
-                var suggestions = tickets.Select(t => new
+                // Check if it's a specific ticket key pattern (e.g., PRODSUP-28864)
+                if (System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^[A-Z]+-\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 {
-                    ticketKey = t.TicketKey,
-                    title = t.Title,
-                    status = t.Status,
-                    priority = t.Priority,
-                    projectKey = t.ProjectKey,
-                    assignee = t.Assignee,
-                    summary = $"{t.TicketKey} - {t.Title}",
-                    prLinks = t.PrLinks
-                }).ToList();
+                    // Use direct ticket fetch for exact ticket keys (like Postman)
+                    var exactTicket = await _jiraService.GetTicketAsync(query.ToUpperInvariant());
+                    if (exactTicket != null)
+                    {
+                        suggestions.Add(new
+                        {
+                            ticketKey = exactTicket.TicketKey,
+                            title = exactTicket.Title,
+                            status = exactTicket.Status,
+                            priority = exactTicket.Priority,
+                            projectKey = exactTicket.ProjectKey,
+                            assignee = exactTicket.Assignee,
+                            summary = $"{exactTicket.TicketKey} - {exactTicket.Title}",
+                            prLinks = exactTicket.PrLinks
+                        });
+                    }
+                }
+                else
+                {
+                    // Use search for other queries
+                    var jqlQuery = BuildJqlQuery(query);
+                    var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, limit);
+
+                    suggestions.AddRange(tickets.Select(t => new
+                    {
+                        ticketKey = t.TicketKey,
+                        title = t.Title,
+                        status = t.Status,
+                        priority = t.Priority,
+                        projectKey = t.ProjectKey,
+                        assignee = t.Assignee,
+                        summary = $"{t.TicketKey} - {t.Title}",
+                        prLinks = t.PrLinks
+                    }));
+                }
 
                 return Ok(new { suggestions });
             }
