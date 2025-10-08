@@ -30,8 +30,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Add HTTP client for Jira API
 builder.Services.AddHttpClient<IJiraService, JiraService>();
 
+// Add HTTP client for GitHub API
+builder.Services.AddHttpClient<GitHubService>();
+
 // Register application services
 builder.Services.AddScoped<IJiraService, JiraService>();
+builder.Services.AddScoped<GitHubService>();
 builder.Services.AddScoped<ISimilarityService, SimilarityService>();
 builder.Services.AddScoped<ITicketDataService, TicketDataService>();
 builder.Services.AddScoped<ITicketAnalysisService, TicketAnalysisService>();

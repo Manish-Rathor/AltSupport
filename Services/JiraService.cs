@@ -49,6 +49,10 @@ namespace Alt_Support.Services
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
+                
+                // Log raw JSON for debugging (first 2000 chars)
+                _logger.LogInformation($"Raw Jira response for {ticketKey}: {content.Substring(0, Math.Min(2000, content.Length))}...");
+                
                 var options = new JsonSerializerOptions 
                 { 
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -57,6 +61,9 @@ namespace Alt_Support.Services
                 options.Converters.Add(new JiraNullableDateTimeConverter());
                 
                 var jiraIssue = JsonSerializer.Deserialize<JiraIssueResponse>(content, options);
+                
+                // Log what fields we have
+                _logger.LogInformation($"Ticket {ticketKey} - Has Description: {jiraIssue?.Fields?.Description != null}, Has CustomField10144: {jiraIssue?.Fields?.PRLinksField != null}");
 
                 return ConvertToTicketInfo(jiraIssue);
             }
@@ -343,8 +350,23 @@ namespace Alt_Support.Services
             // Extract file paths from description and comments
             ticket.AffectedFiles = ExtractFilePathsFromText(ticket.Description);
             
-            // Extract PR links from both description and custom field
-            ticket.PrLinks = GetAllPRLinks(ticket.Description, jiraIssue.Fields?.PRLinksField);
+            // Extract PR links from both description field (rich text) and custom field
+            ticket.PrLinks = GetAllPRLinks(jiraIssue.Fields?.Description, jiraIssue.Fields?.PRLinksField);
+            
+            // Extract sprint information
+            ticket.Sprint = ExtractSprintName(jiraIssue.Fields?.Sprint);
+            
+            // Extract test cases from description
+            ticket.TestCases = ExtractTestCasesFromDescription(jiraIssue.Fields?.Description);
+            
+            // Extract additional custom fields
+            ticket.EPIMPriority = jiraIssue.Fields?.EPIMPriority?.Value ?? "";
+            // TODO: Deployment Trainstop field ID is unknown - need to find the correct custom field
+            ticket.DeploymentTrainstop = ""; // Placeholder until we find the correct field
+            ticket.FixVersions = jiraIssue.Fields?.FixVersions?.Select(v => v.Name).ToList() ?? new List<string>();
+            ticket.LaunchDarklyToggle = jiraIssue.Fields?.LaunchDarklyToggle != null ? string.Join(", ", jiraIssue.Fields.LaunchDarklyToggle) : "";
+            
+            _logger.LogInformation($"Ticket {ticket.TicketKey}: Found {ticket.PrLinks.Count} PR links, Sprint: {ticket.Sprint}, EPIM Priority: {ticket.EPIMPriority}, Deployment Trainstop: {ticket.DeploymentTrainstop}, Launch Darkly: {ticket.LaunchDarklyToggle}, Fix Versions: {string.Join(", ", ticket.FixVersions)}");
 
             return ticket;
         }
@@ -454,27 +476,45 @@ namespace Alt_Support.Services
             var prLinks = new List<string>();
             
             if (customField?.Content == null)
+            {
+                _logger.LogInformation("CustomField10144 is null or has no content");
                 return prLinks;
+            }
+
+            _logger.LogInformation($"CustomField10144 has {customField.Content.Count} content blocks");
 
             foreach (var contentBlock in customField.Content)
             {
+                _logger.LogInformation($"Content block - Type: {contentBlock.Type}, HasContent: {contentBlock.Content != null}");
+                
                 if (contentBlock.Content == null) continue;
+
+                _logger.LogInformation($"Content block has {contentBlock.Content.Count} items");
 
                 foreach (var contentItem in contentBlock.Content)
                 {
+                    _logger.LogInformation($"Content item - Type: {contentItem.Type}, HasMarks: {contentItem.Marks != null}, HasText: {!string.IsNullOrEmpty(contentItem.Text)}");
+                    
                     if (contentItem.Marks == null) continue;
+
+                    _logger.LogInformation($"Content item has {contentItem.Marks.Count} marks");
 
                     foreach (var mark in contentItem.Marks)
                     {
+                        _logger.LogInformation($"Mark - Type: {mark.Type}, Href: {mark.Attrs?.Href}");
+                        
                         if (mark.Type == "link" && mark.Attrs?.Href != null)
                         {
                             var href = mark.Attrs.Href;
+                            _logger.LogInformation($"Found link in custom field: {href}");
+                            
                             // Check if it's a GitHub PR link
                             if (href.Contains("github.com") && (href.Contains("/pull/") || href.Contains("/pr/")))
                             {
                                 if (!prLinks.Contains(href))
                                 {
                                     prLinks.Add(href);
+                                    _logger.LogInformation($"Added PR link from custom field: {href}");
                                 }
                             }
                         }
@@ -485,16 +525,18 @@ namespace Alt_Support.Services
             return prLinks;
         }
 
-        private List<string> GetAllPRLinks(string? description, CustomField10144? customField)
+        private List<string> GetAllPRLinks(DescriptionField? description, CustomField10144? customField)
         {
             var allPRLinks = new List<string>();
             
-            // Get PR links from description
-            var descriptionLinks = ExtractPRLinks(description);
+            // Get PR links from description (extract from rich text)
+            var descriptionLinks = ExtractPRLinksFromDescription(description);
+            _logger.LogInformation($"Found {descriptionLinks.Count} PR links from description");
             allPRLinks.AddRange(descriptionLinks);
             
             // Get PR links from custom field
             var customFieldLinks = ExtractPRLinksFromCustomField(customField);
+            _logger.LogInformation($"Found {customFieldLinks.Count} PR links from custom field");
             foreach (var link in customFieldLinks)
             {
                 if (!allPRLinks.Contains(link))
@@ -504,6 +546,227 @@ namespace Alt_Support.Services
             }
             
             return allPRLinks;
+        }
+        
+        private List<string> ExtractPRLinksFromDescription(DescriptionField? description)
+        {
+            var prLinks = new List<string>();
+            
+            if (description?.Content == null)
+                return prLinks;
+
+            // Recursively search through content for links
+            ExtractLinksFromContent(description.Content, prLinks);
+            
+            return prLinks;
+        }
+        
+        private void ExtractLinksFromContent(List<ContentItem> content, List<string> prLinks)
+        {
+            _logger.LogInformation($"ExtractLinksFromContent: Processing {content.Count} content items");
+            
+            foreach (var item in content)
+            {
+                _logger.LogInformation($"Content item - Type: {item.Type}, HasMarks: {item.Marks != null}, HasText: {!string.IsNullOrEmpty(item.Text)}, HasContent: {item.Content != null}");
+                
+                // Check if this item has marks (which contain links)
+                if (item.Marks != null)
+                {
+                    _logger.LogInformation($"Item has {item.Marks.Count} marks");
+                    foreach (var mark in item.Marks)
+                    {
+                        _logger.LogInformation($"Mark - Type: {mark.Type}, Href: {mark.Attrs?.Href}");
+                        if (mark.Type == "link" && mark.Attrs?.Href != null)
+                        {
+                            var href = mark.Attrs.Href;
+                            _logger.LogInformation($"Found link: {href}");
+                            // Check if it's a GitHub PR link
+                            if (href.Contains("github.com") && (href.Contains("/pull/") || href.Contains("/pr/")))
+                            {
+                                if (!prLinks.Contains(href))
+                                {
+                                    prLinks.Add(href);
+                                    _logger.LogInformation($"Found PR link in description: {href}");
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Check the text for plain PR links (not hyperlinked)
+                if (!string.IsNullOrEmpty(item.Text))
+                {
+                    _logger.LogInformation($"Checking text for PR links: {item.Text.Substring(0, Math.Min(100, item.Text.Length))}");
+                    var textLinks = ExtractPRLinks(item.Text);
+                    if (textLinks.Count > 0)
+                    {
+                        _logger.LogInformation($"Found {textLinks.Count} PR links in text");
+                    }
+                    foreach (var link in textLinks)
+                    {
+                        if (!prLinks.Contains(link))
+                        {
+                            prLinks.Add(link);
+                            _logger.LogInformation($"Found PR link in text: {link}");
+                        }
+                    }
+                }
+                
+                // Recursively process nested content
+                if (item.Content != null)
+                {
+                    _logger.LogInformation($"Item has nested content with {item.Content.Count} items");
+                    ExtractLinksFromContent(item.Content, prLinks);
+                }
+            }
+        }
+        
+        private string ExtractSprintName(List<SprintInfo>? sprints)
+        {
+            if (sprints == null || sprints.Count == 0)
+                return "";
+            
+            // Get the most recent active or closed sprint
+            var activeSprint = sprints.FirstOrDefault(s => s.State == "active");
+            if (activeSprint != null)
+                return activeSprint.Name;
+            
+            // If no active sprint, get the most recent closed sprint
+            var closedSprint = sprints.FirstOrDefault(s => s.State == "closed");
+            if (closedSprint != null)
+                return closedSprint.Name;
+            
+            // Otherwise, return the first sprint
+            return sprints.First().Name;
+        }
+
+        private string ExtractTestCasesFromDescription(DescriptionField? description)
+        {
+            if (description?.Content == null)
+                return "";
+            
+            // Extract text with formatting preserved (line breaks, etc.)
+            var formattedText = ExtractFormattedTextFromDescription(description);
+            
+            // Look for "Test Cases :" or "Test Case" pattern
+            var testCaseIndex = formattedText.IndexOf("Test Cases", StringComparison.OrdinalIgnoreCase);
+            if (testCaseIndex == -1)
+            {
+                testCaseIndex = formattedText.IndexOf("Test Case", StringComparison.OrdinalIgnoreCase);
+            }
+            
+            if (testCaseIndex >= 0)
+            {
+                // Extract everything after "Test Cases" or "Test Case"
+                var testCasesText = formattedText.Substring(testCaseIndex).Trim();
+                _logger.LogInformation($"Extracted test cases: {testCasesText.Substring(0, Math.Min(200, testCasesText.Length))}...");
+                return testCasesText;
+            }
+            
+            return "";
+        }
+        
+        private string ExtractFormattedTextFromDescription(DescriptionField description)
+        {
+            var textBuilder = new StringBuilder();
+            ExtractFormattedTextFromContent(description.Content, textBuilder, 0);
+            return textBuilder.ToString().Trim();
+        }
+        
+        private void ExtractFormattedTextFromContent(List<ContentItem>? content, StringBuilder textBuilder, int listItemCounter)
+        {
+            if (content == null) return;
+            
+            int currentListNumber = 1;
+            
+            foreach (var item in content)
+            {
+                switch (item.Type?.ToLower())
+                {
+                    case "paragraph":
+                        // Process paragraph content
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, 0);
+                        }
+                        // Add single line break after paragraph (hardBreaks within will add more)
+                        textBuilder.AppendLine();
+                        break;
+                        
+                    case "text":
+                        // Add the text content
+                        if (!string.IsNullOrEmpty(item.Text))
+                        {
+                            textBuilder.Append(item.Text);
+                        }
+                        break;
+                        
+                    case "hardbreak":
+                        // Add a line break
+                        textBuilder.AppendLine();
+                        break;
+                        
+                    case "orderedlist":
+                        // Process ordered list content with numbering
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, 1);
+                        }
+                        textBuilder.AppendLine();
+                        break;
+                        
+                    case "bulletlist":
+                        // Process bullet list content
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, -1);
+                        }
+                        textBuilder.AppendLine();
+                        break;
+                        
+                    case "listitem":
+                        // Add list item marker (numbered or bullet)
+                        if (listItemCounter > 0)
+                        {
+                            // Ordered list
+                            textBuilder.Append($"{currentListNumber}. ");
+                            currentListNumber++;
+                        }
+                        else if (listItemCounter < 0)
+                        {
+                            // Bullet list
+                            textBuilder.Append("• ");
+                        }
+                        
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, 0);
+                        }
+                        break;
+                        
+                    case "heading":
+                        // Add heading with single line break
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, 0);
+                        }
+                        textBuilder.AppendLine();
+                        break;
+                        
+                    case "emoji":
+                        // Skip emojis or add a placeholder
+                        textBuilder.Append(" ");
+                        break;
+                        
+                    default:
+                        // For other types, recursively process nested content
+                        if (item.Content != null)
+                        {
+                            ExtractFormattedTextFromContent(item.Content, textBuilder, 0);
+                        }
+                        break;
+                }
+            }
         }
     }
 

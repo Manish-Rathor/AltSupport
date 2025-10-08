@@ -672,6 +672,30 @@
                             <div class="meta-value">${ticket.priority || 'N/A'}</div>
                         </div>
                         <div class="meta-item">
+                            <div class="meta-label">EPIM Priority</div>
+                            <div class="meta-value">${ticket.epimPriority || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Sprint</div>
+                            <div class="meta-value">${ticket.sprint || 'No Sprint'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Deployment Trainstop</div>
+                            <div class="meta-value">${ticket.deploymentTrainstop || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Fix Versions</div>
+                            <div class="meta-value">${ticket.fixVersions && ticket.fixVersions.length > 0 ? ticket.fixVersions.join(', ') : 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Component</div>
+                            <div class="meta-value">${ticket.components && ticket.components.length > 0 ? ticket.components.join(', ') : 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Launch Darkly Toggle</div>
+                            <div class="meta-value">${ticket.launchDarklyToggle || 'N/A'}</div>
+                        </div>
+                        <div class="meta-item">
                             <div class="meta-label">Assignee</div>
                             <div class="meta-value">${ticket.assignee || 'Unassigned'}</div>
                         </div>
@@ -698,6 +722,8 @@
                     </div>
 
                     ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
+
+                    ${this.renderTestCases(ticket.testCases)}
 
                     <div class="description-section">
                         <h3>📝 Description</h3>
@@ -728,6 +754,19 @@
                             <a href="${link}" target="_blank" class="pr-link" style="flex: 0 0 auto;">
                                 🔗 ${prInfo.displayText}
                             </a>
+                            <button class="view-pr-files-btn" onclick="window.ticketApp.showPRFiles('${link}')" style="
+                                background: #007bff;
+                                color: white;
+                                border: none;
+                                padding: 8px 15px;
+                                border-radius: 20px;
+                                cursor: pointer;
+                                font-size: 0.85rem;
+                                font-weight: 500;
+                                transition: background 0.3s ease;
+                            " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+                                📁 View Files
+                            </button>
                             <button class="copy-pr-btn" onclick="navigator.clipboard.writeText('${link}').then(() => { 
                                 event.target.textContent = '✓ Copied!'; 
                                 setTimeout(() => event.target.textContent = '📋 Copy', 2000); 
@@ -746,6 +785,7 @@
                             </button>
                             <span style="color: #666; font-size: 0.85rem; font-family: monospace;">${prInfo.repoName}</span>
                         </div>
+                        <div id="pr-files-${index}" style="display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #007bff;"></div>
                     `;
                 }).join('');
 
@@ -830,6 +870,72 @@
                 return content;
             }
 
+            renderTestCases(testCases) {
+                if (!testCases || testCases.trim() === '') {
+                    return `
+                        <div class="pr-links" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 5px solid #6c757d;">
+                            <h3>🧪 Test Cases</h3>
+                            <p style="color: #666; font-style: italic; margin: 0;">No test cases found for this ticket</p>
+                        </div>
+                    `;
+                }
+
+                // Format test cases to look more like Jira
+                let formattedTestCases = this.escapeHtml(testCases);
+                
+                // FIRST: Convert all newlines to <br> tags to preserve line breaks
+                formattedTestCases = formattedTestCases.replace(/\n/g, '<br>');
+                
+                // Make "Test Cases :" or "Test Cases -" bold
+                formattedTestCases = formattedTestCases.replace(/Test Cases\s*[:-]/gi, '<strong style="font-size: 1.1em; color: #172b4d;">Test Cases:</strong>');
+                
+                // Make "Test Case X :" or "Test Case X -" bold
+                formattedTestCases = formattedTestCases.replace(/Test Case\s+(\d+)\s*[:-]/gi, '<br><br><strong style="font-size: 1.05em; color: #0052cc;">Test Case $1:</strong>');
+                
+                // Make "prerequisites :" or "Pre-requisite -" bold
+                formattedTestCases = formattedTestCases.replace(/(prerequisites?|Pre-requisite)\s*[:-]/gi, '<br><strong style="color: #6554c0;">Prerequisites:</strong>');
+                
+                // Make "Toggle Should ON/OFF" bold
+                formattedTestCases = formattedTestCases.replace(/Toggle Should\s+(ON|OFF)/gi, '<strong style="color: #00875a;">Toggle Should $1</strong>');
+                
+                // Format numbered steps (1. 2. 3. etc.) - make them stand out
+                formattedTestCases = formattedTestCases.replace(/(<br>)?(\d+)\.\s+/g, '<br><span style="color: #0052cc; font-weight: 600;">$2.</span> ');
+                
+                // Add checkmark styling
+                formattedTestCases = formattedTestCases.replace(/✓/g, '<span style="color: #00875a; font-size: 1.2em;">✓</span>');
+
+                return `
+                    <div class="pr-links" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 5px solid #2196f3;">
+                        <h3>🧪 Test Cases</h3>
+                        <div style="background: white; padding: 20px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; line-height: 1.8; color: #172b4d; font-size: 14px;">
+                            ${formattedTestCases}
+                        </div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                            <button onclick="
+                                const text = ${JSON.stringify(testCases).replace(/"/g, '&quot;')};
+                                navigator.clipboard.writeText(text).then(() => {
+                                    event.target.textContent = '✓ Copied!';
+                                    setTimeout(() => event.target.textContent = '📋 Copy Test Cases', 2000);
+                                });
+                            " style="
+                                background: #2196f3;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 25px;
+                                cursor: pointer;
+                                font-size: 0.9rem;
+                                font-weight: 600;
+                                transition: all 0.3s ease;
+                                box-shadow: 0 3px 6px rgba(33, 150, 243, 0.3);
+                            " onmouseover="this.style.background='#1976d2'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#2196f3'; this.style.transform='translateY(0)'">
+                                📋 Copy Test Cases
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
             extractPRNumber(prLink) {
                 const match = prLink.match(/pull\/(\d+)/);
                 return match ? `PR #${match[1]}` : 'Pull Request';
@@ -877,11 +983,293 @@
             hideError() {
                 this.errorMessage.style.display = 'none';
             }
+
+            async showPRFiles(prUrl) {
+                try {
+                    // Find the PR container to show loading state
+                    const prIndex = this.currentTicket?.prLinks?.indexOf(prUrl) || 0;
+                    const filesContainer = document.getElementById(`pr-files-${prIndex}`);
+                    
+                    if (!filesContainer) {
+                        console.error('Files container not found');
+                        return;
+                    }
+
+                    // Toggle visibility
+                    if (filesContainer.style.display === 'block') {
+                        filesContainer.style.display = 'none';
+                        return;
+                    }
+
+                    filesContainer.style.display = 'block';
+                    filesContainer.innerHTML = '<p style="color: #666;">⏳ Loading PR files...</p>';
+
+                    // Fetch PR details from backend
+                    const response = await fetch(`/api/tickets/pr-details?prUrl=${encodeURIComponent(prUrl)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch PR details');
+                    }
+
+                    const prDetails = await response.json();
+                    
+                    // Render PR files
+                    filesContainer.innerHTML = this.renderPRFiles(prDetails);
+                } catch (error) {
+                    console.error('Error fetching PR files:', error);
+                    const prIndex = this.currentTicket?.prLinks?.indexOf(prUrl) || 0;
+                    const filesContainer = document.getElementById(`pr-files-${prIndex}`);
+                    if (filesContainer) {
+                        filesContainer.innerHTML = '<p style="color: #dc3545;">❌ Failed to load PR files. Make sure GitHub token is configured.</p>';
+                    }
+                }
+            }
+
+            renderPRFiles(prDetails) {
+                if (!prDetails || !prDetails.files || prDetails.files.length === 0) {
+                    return '<p style="color: #666;">No files found in this PR.</p>';
+                }
+
+                const totalAdditions = prDetails.files.reduce((sum, f) => sum + f.additions, 0);
+                const totalDeletions = prDetails.files.reduce((sum, f) => sum + f.deletions, 0);
+                const totalChanges = prDetails.files.reduce((sum, f) => sum + f.changes, 0);
+
+                // Group files by directory for better organization
+                const filesByType = {
+                    added: prDetails.files.filter(f => f.status === 'added'),
+                    modified: prDetails.files.filter(f => f.status === 'modified'),
+                    removed: prDetails.files.filter(f => f.status === 'removed'),
+                    renamed: prDetails.files.filter(f => f.status === 'renamed')
+                };
+
+                const renderFileGroup = (files, groupName, color, icon) => {
+                    if (files.length === 0) return '';
+                    return `
+                        <div style="margin: 15px 0;">
+                            <h5 style="margin: 10px 0 5px 0; color: ${color}; font-size: 0.95em; font-weight: 600;">
+                                ${icon} ${groupName} (${files.length})
+                            </h5>
+                            ${files.map((file, idx) => {
+                                const fileId = `file-${Math.random().toString(36).substr(2, 9)}`;
+                                return `
+                                <div style="margin: 5px 0;">
+                                    <div style="padding: 8px 12px; background: white; border-radius: 5px; border-left: 3px solid ${color}; display: flex; justify-content: space-between; align-items: center;">
+                                        <code style="flex: 1; font-size: 0.85em; color: #333; word-break: break-all;">${this.escapeHtml(file.filename)}</code>
+                                        <div style="display: flex; gap: 10px; align-items: center; margin-left: 10px; white-space: nowrap;">
+                                            <span style="color: #28a745; font-weight: 600; font-size: 0.8em;">+${file.additions}</span>
+                                            <span style="color: #dc3545; font-weight: 600; font-size: 0.8em;">-${file.deletions}</span>
+                                            ${file.patch ? `
+                                                <button class="view-diff-btn" data-file-id="${fileId}" style="
+                                                    background: #6c757d;
+                                                    color: white;
+                                                    border: none;
+                                                    padding: 4px 10px;
+                                                    border-radius: 4px;
+                                                    cursor: pointer;
+                                                    font-size: 0.75em;
+                                                    font-weight: 500;
+                                                    transition: background 0.2s ease;
+                                                " onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
+                                                    📝 View Diff
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    ${file.patch ? `
+                                        <div id="${fileId}" class="file-diff" style="display: none; margin-top: 5px; padding: 10px; background: #f6f8fa; border-radius: 5px; overflow-x: auto;">
+                                            <pre style="margin: 0; font-family: 'Courier New', Consolas, monospace; font-size: 0.8em; line-height: 1.4;">${this.renderDiff(file.patch)}</pre>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `}).join('')}
+                        </div>
+                    `;
+                };
+
+                const htmlContent = `
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #dee2e6;">
+                            <h4 style="margin: 0 0 10px 0; color: #333; font-size: 1.1em;">
+                                📊 ${this.escapeHtml(prDetails.title || 'Pull Request')}
+                            </h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; font-size: 0.9em;">
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    👤 <strong>${this.escapeHtml(prDetails.user)}</strong>
+                                </span>
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" title="${new Date(prDetails.createdAt).toLocaleString()}">
+                                    📅 <strong>${this.formatDate(prDetails.createdAt)}</strong>
+                                </span>
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-family: monospace;">
+                                    🕒 <strong>${this.formatDateTime(prDetails.createdAt)}</strong>
+                                </span>
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    📁 <strong>${prDetails.files.length}</strong> files
+                                </span>
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    <span style="color: #28a745; font-weight: 600;">+${totalAdditions}</span> / 
+                                    <span style="color: #dc3545; font-weight: 600;">-${totalDeletions}</span>
+                                </span>
+                                <span style="background: white; padding: 5px 12px; border-radius: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                    📝 <strong>${totalChanges}</strong> total changes
+                                </span>
+                                <span style="padding: 5px 12px; background: ${prDetails.state === 'open' ? '#28a745' : prDetails.state === 'closed' ? '#dc3545' : '#6f42c1'}; color: white; border-radius: 15px; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                    ${prDetails.state === 'open' ? '🟢' : prDetails.state === 'closed' ? '🔴' : '🟣'} ${prDetails.state.toUpperCase()}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="max-height: 500px; overflow-y: auto; padding-right: 5px;">
+                            ${renderFileGroup(filesByType.added, 'Added Files', '#28a745', '➕')}
+                            ${renderFileGroup(filesByType.modified, 'Modified Files', '#ffc107', '📝')}
+                            ${renderFileGroup(filesByType.removed, 'Removed Files', '#dc3545', '➖')}
+                            ${renderFileGroup(filesByType.renamed, 'Renamed Files', '#17a2b8', '🔄')}
+                        </div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #dee2e6; text-align: center;">
+                            <button class="copy-pr-files-btn" style="background: #007bff; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,123,255,0.3);" onmouseover="this.style.background='#0056b3'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='#007bff'; this.style.transform='translateY(0)'">📋 Copy File List</button>
+                        </div>
+                    </div>
+                `;
+
+                // After rendering, attach event listeners
+                setTimeout(() => {
+                    // Copy button listener
+                    const copyBtn = document.querySelector('.copy-pr-files-btn');
+                    if (copyBtn && !copyBtn.dataset.listenerAttached) {
+                        copyBtn.dataset.listenerAttached = 'true';
+                        copyBtn.addEventListener('click', () => {
+                            const filesList = prDetails.files.map(f => 
+                                `${f.status.toUpperCase()}: ${f.filename} (+${f.additions} -${f.deletions})`
+                            );
+                            const text = `PR: ${prDetails.title}\n\nFiles Changed (${prDetails.files.length}):\n${filesList.join('\n')}`;
+                            
+                            navigator.clipboard.writeText(text).then(() => {
+                                copyBtn.textContent = '✓ Copied!';
+                                setTimeout(() => copyBtn.textContent = '📋 Copy File List', 2000);
+                            });
+                        });
+                    }
+
+                    // View Diff button listeners
+                    const diffBtns = document.querySelectorAll('.view-diff-btn');
+                    diffBtns.forEach(btn => {
+                        if (!btn.dataset.listenerAttached) {
+                            btn.dataset.listenerAttached = 'true';
+                            btn.addEventListener('click', () => {
+                                const fileId = btn.dataset.fileId;
+                                const diffContainer = document.getElementById(fileId);
+                                if (diffContainer) {
+                                    if (diffContainer.style.display === 'none') {
+                                        diffContainer.style.display = 'block';
+                                        btn.textContent = '🔼 Hide Diff';
+                                    } else {
+                                        diffContainer.style.display = 'none';
+                                        btn.textContent = '📝 View Diff';
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }, 100);
+
+                return htmlContent;
+            }
+
+            renderDiff(patch) {
+                if (!patch) return 'No diff available';
+                
+                // Split patch into lines and format each line
+                const lines = patch.split('\n');
+                return lines.map(line => {
+                    let style = '';
+                    let escapedLine = this.escapeHtml(line);
+                    
+                    if (line.startsWith('@@')) {
+                        // Diff header (line numbers)
+                        style = 'color: #0969da; background: #ddf4ff; font-weight: bold;';
+                    } else if (line.startsWith('+')) {
+                        // Addition
+                        style = 'background: #ccffd8; color: #116329;';
+                    } else if (line.startsWith('-')) {
+                        // Deletion
+                        style = 'background: #ffd7d5; color: #82071e;';
+                    } else if (line.startsWith('\\')) {
+                        // No newline at end of file
+                        style = 'color: #656d76; font-style: italic;';
+                    } else {
+                        // Context line
+                        style = 'color: #1f2328;';
+                    }
+                    
+                    return `<div style="${style} padding: 0 4px; margin: 0;">${escapedLine || ' '}</div>`;
+                }).join('');
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return 'Unknown date';
+                
+                try {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                    
+                    // Format as relative time for recent dates
+                    if (diffMinutes < 60) {
+                        return diffMinutes === 0 ? 'Just now' : `${diffMinutes} min${diffMinutes !== 1 ? 's' : ''} ago`;
+                    } else if (diffHours < 24) {
+                        return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+                    } else if (diffDays < 7) {
+                        return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+                    } else if (diffDays < 30) {
+                        const weeks = Math.floor(diffDays / 7);
+                        return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
+                    } else if (diffDays < 365) {
+                        const months = Math.floor(diffDays / 30);
+                        return `${months} month${months !== 1 ? 's' : ''} ago`;
+                    } else {
+                        const years = Math.floor(diffDays / 365);
+                        return `${years} year${years !== 1 ? 's' : ''} ago`;
+                    }
+                } catch (e) {
+                    // Fallback to formatted date
+                    try {
+                        const date = new Date(dateString);
+                        return date.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                        });
+                    } catch (err) {
+                        return 'Invalid date';
+                    }
+                }
+            }
+
+            formatDateTime(dateString) {
+                if (!dateString) return 'N/A';
+                
+                try {
+                    const date = new Date(dateString);
+                    // Format: Oct 7, 2025 2:30 PM
+                    const options = {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    };
+                    return date.toLocaleString('en-US', options);
+                } catch (e) {
+                    return 'Invalid date';
+                }
+            }
         }
 
         // Initialize the search functionality
         document.addEventListener('DOMContentLoaded', () => {
-            new TicketSearch();
+            window.ticketApp = new TicketSearch();
         });
     </script>
 </body>

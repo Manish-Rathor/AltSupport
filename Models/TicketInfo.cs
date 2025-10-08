@@ -38,7 +38,19 @@ namespace Alt_Support.Models
         // Multiple PR links extracted from custom field and description
         public List<string> PrLinks { get; set; } = new List<string>();
         
+        public string Sprint { get; set; } = string.Empty;
+        
+        public string TestCases { get; set; } = string.Empty;
+        
         public string Resolution { get; set; } = string.Empty;
+        
+        public string EPIMPriority { get; set; } = string.Empty;
+        
+        public string DeploymentTrainstop { get; set; } = string.Empty;
+        
+        public List<string> FixVersions { get; set; } = new List<string>();
+        
+        public string LaunchDarklyToggle { get; set; } = string.Empty;
         
         public DateTime CreatedDate { get; set; }
         

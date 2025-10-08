@@ -37,7 +37,21 @@ namespace Alt_Support.Models
         [JsonConverter(typeof(JiraNullableDateTimeConverter))]
         public DateTime? Resolutiondate { get; set; }
         public ResolutionInfo? Resolution { get; set; }
+        [JsonPropertyName("customfield_10144")]
         public CustomField10144? PRLinksField { get; set; }
+        [JsonPropertyName("customfield_10020")]
+        public List<SprintInfo>? Sprint { get; set; }
+        [JsonPropertyName("customfield_10145")]
+        public CustomField10145? TestCasesField { get; set; }
+        [JsonPropertyName("customfield_10074")]
+        public CustomFieldOption? EPIMPriority { get; set; }
+        [JsonPropertyName("customfield_10252")]
+        public CustomField10252? ResolutionNotes { get; set; }
+        // TODO: Find the correct custom field ID for Deployment Trainstop
+        // customfield_10252 is actually Resolution Notes, not Deployment Trainstop
+        public List<VersionInfo>? FixVersions { get; set; }
+        [JsonPropertyName("customfield_10304")]
+        public List<string>? LaunchDarklyToggle { get; set; }
     }
 
     public class DescriptionField
@@ -132,5 +146,42 @@ namespace Alt_Support.Models
         public string? FromString { get; set; }
         public string? To { get; set; }
         public new string? ToString { get; set; }
+    }
+
+    public class SprintInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string State { get; set; } = string.Empty;
+        public int BoardId { get; set; }
+    }
+
+    public class CustomField10145
+    {
+        public string Type { get; set; } = string.Empty;
+        public int Version { get; set; }
+        public List<ContentItem>? Content { get; set; }
+    }
+
+    public class VersionInfo
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public bool Released { get; set; }
+        public DateTime? ReleaseDate { get; set; }
+    }
+
+    public class CustomFieldOption
+    {
+        public string Self { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+    }
+
+    public class CustomField10252
+    {
+        public string Type { get; set; } = string.Empty;
+        public int Version { get; set; }
+        public List<ContentItem>? Content { get; set; }
     }
 }

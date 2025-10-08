@@ -10,15 +10,18 @@ namespace Alt_Support.Controllers
     {
         private readonly ITicketDataService _ticketDataService;
         private readonly IJiraService _jiraService;
+        private readonly GitHubService _githubService;
         private readonly ILogger<TicketsController> _logger;
 
         public TicketsController(
             ITicketDataService ticketDataService, 
             IJiraService jiraService,
+            GitHubService githubService,
             ILogger<TicketsController> logger)
         {
             _ticketDataService = ticketDataService;
             _jiraService = jiraService;
+            _githubService = githubService;
             _logger = logger;
         }
 
@@ -479,12 +482,18 @@ namespace Alt_Support.Controllers
                     ticketType = ticket.TicketType,
                     labels = ticket.Labels,
                     components = ticket.Components,
+                    sprint = ticket.Sprint,
+                    testCases = ticket.TestCases,
+                    epimPriority = ticket.EPIMPriority,
+                    deploymentTrainstop = ticket.DeploymentTrainstop,
+                    fixVersions = ticket.FixVersions,
+                    launchDarklyToggle = ticket.LaunchDarklyToggle,
                     createdDate = ticket.CreatedDate,
                     updatedDate = ticket.UpdatedDate,
                     resolvedDate = ticket.ResolvedDate,
                     
-                    // Extract GitHub PR links from description
-                    prLinks = ExtractPRLinks(ticket.Description),
+                    // Use PR links already extracted by JiraService (from both description and custom field)
+                    prLinks = ticket.PrLinks ?? new List<string>(),
                     
                     // Additional fields that might be useful
                     jiraUrl = $"https://navex.atlassian.net/browse/{ticket.TicketKey}",
@@ -492,6 +501,8 @@ namespace Alt_Support.Controllers
                     // Raw fields for debugging
                     rawDescription = ticket.Description
                 };
+                
+                _logger.LogInformation($"Ticket {ticketKey} has {ticket.PrLinks?.Count ?? 0} PR links");
 
                 return Ok(response);
             }
@@ -604,6 +615,37 @@ namespace Alt_Support.Controllers
             }
 
             return prLinks;
+        }
+
+        /// <summary>
+        /// Get PR details including file changes
+        /// </summary>
+        [HttpGet("pr-details")]
+        public async Task<ActionResult<object>> GetPRDetails([FromQuery] string prUrl)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(prUrl))
+                {
+                    return BadRequest("PR URL is required");
+                }
+
+                _logger.LogInformation($"Fetching PR details for: {prUrl}");
+
+                var prDetails = await _githubService.GetPRDetailsAsync(prUrl);
+                
+                if (prDetails == null)
+                {
+                    return NotFound("PR not found or unable to fetch details");
+                }
+
+                return Ok(prDetails);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error fetching PR details for {prUrl}");
+                return StatusCode(500, new { error = "Failed to fetch PR details", message = ex.Message });
+            }
         }
     }
 }
