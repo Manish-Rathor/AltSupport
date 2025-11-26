@@ -332,7 +332,7 @@ namespace Alt_Support.Services
             {
                 TicketKey = jiraIssue.Key,
                 Title = jiraIssue.Fields?.Summary ?? "",
-                Description = ExtractTextFromDescription(jiraIssue.Fields?.Description),
+                Description = jiraIssue.Fields?.Description != null ? ExtractFormattedTextFromDescription(jiraIssue.Fields.Description) : "",
                 TicketType = jiraIssue.Fields?.Issuetype?.Name ?? "",
                 Status = jiraIssue.Fields?.Status?.Name ?? "",
                 Priority = jiraIssue.Fields?.Priority?.Name ?? "",
