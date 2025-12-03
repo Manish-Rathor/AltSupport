@@ -460,7 +460,8 @@ namespace Alt_Support.Controllers
         {
             try
             {
-                // Get ticket from Jira to get the most up-to-date info
+                
+                //    Get ticket from Jira to get the most up-to-date info
                 var ticket = await _jiraService.GetTicketAsync(ticketKey);
                 
                 if (ticket == null)
