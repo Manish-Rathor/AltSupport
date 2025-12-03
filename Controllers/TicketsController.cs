@@ -393,7 +393,7 @@ namespace Alt_Support.Controllers
         /// Get autocomplete suggestions for search input
         /// </summary>
         [HttpGet("autocomplete")]
-        public async Task<ActionResult<object>> GetAutocompleteSuggestions([FromQuery] string query, [FromQuery] int limit = 5)
+        public async Task<ActionResult<object>> GetAutocompleteSuggestions([FromQuery] string query, [FromQuery] string? projectKeys, [FromQuery] string? issueTypes, [FromQuery] int limit = 5)
         {
             try
             {
@@ -405,7 +405,7 @@ namespace Alt_Support.Controllers
                 var suggestions = new List<object>();
 
                 // Check if it's a specific ticket key pattern (e.g., PRODSUP-28864)
-                if (System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^[A-Z]+-\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                if ( string.IsNullOrEmpty(projectKeys) && string.IsNullOrEmpty(issueTypes) && System.Text.RegularExpressions.Regex.IsMatch(query.Trim(), @"^[A-Z]+-\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 {
                     // Use direct ticket fetch for exact ticket keys (like Postman)
                     var exactTicket = await _jiraService.GetTicketAsync(query.ToUpperInvariant());
@@ -427,7 +427,7 @@ namespace Alt_Support.Controllers
                 else
                 {
                     // Use search for other queries
-                    var jqlQuery = BuildJqlQuery(query);
+                    var jqlQuery = BuildJqlQueryByProjectsAndIssueTypes(query, projectKeys, issueTypes);
                     var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, limit);
 
                     suggestions.AddRange(tickets.Select(t => new
@@ -522,6 +522,20 @@ namespace Alt_Support.Controllers
             var jiraTickets = await _jiraService.SearchTicketsAsync(jqlQuery, maxResults);
             
             return jiraTickets;
+        }
+
+        private string BuildJqlQueryByProjectsAndIssueTypes(string searchTerm, string projectKeys, string issueTypes)
+        {
+            if (!string.IsNullOrEmpty(projectKeys) || !string.IsNullOrEmpty(issueTypes))
+            {
+                return $"{(!string.IsNullOrEmpty(projectKeys) ? $"project in ({projectKeys}) AND " : "")}" +
+                    $"{(!string.IsNullOrEmpty(issueTypes)? $"type in ({ string.Join(",", issueTypes.Split(",").Select(t => $"\"{t.Trim()}\""))}) AND " : "")}" +
+                    $"{BuildJqlQuery(searchTerm)}";
+            }
+            else
+            {
+                return BuildJqlQuery(searchTerm);
+            }
         }
 
         private string BuildJqlQuery(string searchTerm)

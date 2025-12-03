@@ -20,6 +20,7 @@
 
         .container {
             max-width: 1400px;
+            min-height: calc(100vh - 40px);
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -437,6 +438,112 @@
                 gap: 10px;
             }
         }
+
+        /*--- Styling for Projects Multi Select Dropdown starts ---*/
+        .multi-select-dropdown {
+            position: relative;
+            display: inline-block;
+            min-width: 220px;
+            font-size: 1rem;
+        }
+
+        .dropdown-selected {
+            background: #ffffff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: border-color 0.2s;
+        }
+
+            .dropdown-selected:after {
+                content: "▼";
+                float: right;
+                margin-left: 10px;
+                font-size: 0.8em;
+                color: #888;
+            }
+
+            .dropdown-selected.open:after {
+                content: "▲";
+            }
+
+        .dropdown-list {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: left;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            z-index: 999;
+            padding: 10px 0;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+            .dropdown-list label {
+                display: block;
+                padding: 3px 0px 3px 10px;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: background 0.15s;
+            }
+
+                .dropdown-list label:hover {
+                    background: #f0f4ff;
+                }
+
+            .dropdown-list input[type="checkbox"] {
+                margin-right: 8px;
+            }
+
+        .dropdown-search-container {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .dropdown-search-input {
+            width: calc(100% - 6px);
+            margin: 0px 0px 3px 6px;
+            padding: 5px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .dropdown-clear-btn {
+            position: absolute;
+            right: 5px;
+            top: 45%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: #666;
+            cursor: pointer;
+            padding: 3px;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: none;
+        }
+
+        .dropdown-clear-btn:hover {
+            background: #f0f0f0;
+        }
+        /*--- Styling for Projects Multi Select Dropdown ends ---*/
     </style>
 </head>
 <body>
@@ -458,6 +565,34 @@
             </div>
             
             <div class="search-options">
+                <div class="multi-select-dropdown" id="multiSelectProjectsDropdown">
+                    <input type="hidden" id="hdnSelectedProjectKeys" />
+                    <div class="dropdown-selected" id="dropdownSelectedProjects">Select Projects</div>
+                    <div class="dropdown-list" id="dropdownProjectList">
+                        <div id="projectsSearchContainer" class="dropdown-search-container" style="display: none;">
+                            <input type="text"
+                                   id="projectsSearchInput"
+                                   class="dropdown-search-input"
+                                   placeholder="Search Projects with Name or Key"
+                                   autocomplete="off">
+                            <button id="projectsClearBtn" class="dropdown-clear-btn">&times;</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="multi-select-dropdown" id="multiSelectIssueTypesDropdown">
+                    <input type="hidden" id="hdnSelectedIssueTypes" />
+                    <div class="dropdown-selected" id="dropdownSelectedIssueTypes">Select Types</div>
+                    <div class="dropdown-list" id="dropdownIssueTypeList">
+                        <div id="issueTypesSearchContainer" class="dropdown-search-container" style="display: none;">
+                            <input type="text"
+                                   id="issueTypesSearchInput"
+                                   class="dropdown-search-input"
+                                   placeholder="Search Types"
+                                   autocomplete="off">
+                            <button id="issueTypesClearBtn" class="dropdown-clear-btn">&times;</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="jiraOnly" checked>
                     <label for="jiraOnly">Search Jira Only</label>
@@ -494,8 +629,48 @@
                 this.debounceTimer = null;
                 this.selectedIndex = -1;
                 this.suggestions = [];
-                
+
+                this.initDropdowns();
+                this.selectedProjectKeys = document.getElementById('hdnSelectedProjectKeys');
+                this.selectedIssueTypes = document.getElementById('hdnSelectedIssueTypes');
+
                 this.initEventListeners();
+            }
+
+            initDropdowns() {
+                this.projectsDropdown = new MultiSelectDropdown({
+                    multiSelectDropdownId: 'multiSelectProjectsDropdown',
+                    dropdownSelectedTextId: 'dropdownSelectedProjects',
+                    dropdownListId: 'dropdownProjectList',
+                    selectedValuesFieldId: 'hdnSelectedProjectKeys',
+                    searchContainerId: 'projectsSearchContainer',
+                    searchInputId: 'projectsSearchInput',
+                    clearBtnId: 'projectsClearBtn',
+                    apiUrl: '/api/projects',
+                    labelKey: 'name',
+                    valueKey: 'key',
+                    noneSelectedPlaceholder: 'Select Projects',
+                    oneItemSelectedPlaceholder: '1 Project Selected',
+                    multipleItemsSelectedPlaceholder: '{count} Projects Selected',
+                    onChange: () => this.searchInput.dispatchEvent(new Event('input'))
+                });
+
+                this.issueTypesDropdown = new MultiSelectDropdown({
+                    multiSelectDropdownId: 'multiSelectIssueTypesDropdown',
+                    dropdownSelectedTextId: 'dropdownSelectedIssueTypes',
+                    dropdownListId: 'dropdownIssueTypeList',
+                    selectedValuesFieldId: 'hdnSelectedIssueTypes',
+                    searchContainerId: 'issueTypesSearchContainer',
+                    searchInputId: 'issueTypesSearchInput',
+                    clearBtnId: 'issueTypesClearBtn',
+                    apiUrl: '/api/IssueTypes',
+                    labelKey: 'name',
+                    valueKey: 'name', //'key',
+                    noneSelectedPlaceholder: 'Select Types',
+                    oneItemSelectedPlaceholder: '1 Type Selected',
+                    multipleItemsSelectedPlaceholder: '{count} Types Selected',
+                    onChange: () => this.searchInput.dispatchEvent(new Event('input'))
+                });
             }
 
             initEventListeners() {
@@ -515,14 +690,16 @@
 
             handleInput(e) {
                 const query = e.target.value.trim();
-                
+                const selectedProjectKeys = this.selectedProjectKeys.value;
+                const selectedIssueTypes = this.selectedIssueTypes.value;
+
                 // Show/hide clear button
                 this.clearBtn.style.display = query ? 'block' : 'none';
                 
                 if (query.length >= 2) {
                     clearTimeout(this.debounceTimer);
                     this.debounceTimer = setTimeout(() => {
-                        this.getAutocompleteSuggestions(query);
+                        this.getAutocompleteSuggestions(query, selectedProjectKeys, selectedIssueTypes);
                     }, 300);
                 } else {
                     this.hideAutocomplete();
@@ -580,9 +757,9 @@
                 this.searchInput.focus();
             }
 
-            async getAutocompleteSuggestions(query) {
+            async getAutocompleteSuggestions(query, selectedProjectKeys, selectedIssueTypes) {
                 try {
-                    const response = await fetch(`/api/tickets/autocomplete?query=${encodeURIComponent(query)}&limit=8`);
+                    const response = await fetch(`/api/tickets/autocomplete?query=${encodeURIComponent(query)}&projectKeys=${encodeURIComponent(selectedProjectKeys)}&issueTypes=${encodeURIComponent(selectedIssueTypes)}&limit=8`);
                     const data = await response.json();
                     
                     this.suggestions = data.suggestions || [];
@@ -1359,6 +1536,100 @@
                 } catch (e) {
                     return 'Invalid date';
                 }
+            }
+        }
+
+        class MultiSelectDropdown {
+            constructor(options) {
+                this.multiSelectDropdown = document.getElementById(options.multiSelectDropdownId);
+                this.dropdownSelectedText = document.getElementById(options.dropdownSelectedTextId);
+                this.dropdownList = document.getElementById(options.dropdownListId);
+                this.selectedValuesField = document.getElementById(options.selectedValuesFieldId);
+                this.searchContainer = document.getElementById(options.searchContainerId);
+                this.searchInput = document.getElementById(options.searchInputId);
+                this.clearBtn = document.getElementById(options.clearBtnId);
+                this.apiUrl = options.apiUrl;
+                this.labelKey = options.labelKey;
+                this.valueKey = options.valueKey;
+                this.noneSelectedPlaceholder = options.noneSelectedPlaceholder;
+                this.oneItemSelectedPlaceholder = options.oneItemSelectedPlaceholder;
+                this.multipleItemsSelectedPlaceholder = options.multipleItemsSelectedPlaceholder;
+                this.onChange = options.onChange;
+
+                this.dropdownCheckboxes = [];
+                this.init();
+            }
+
+            async init() {
+                await this.loadOptions();
+                this.dropdownSelectedText.addEventListener('click', (e) => this.toggleDropdown(e));
+                // Hide dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.multiSelectDropdown.contains(e.target)) {
+                        this.dropdownList.style.display = 'none';
+                        this.dropdownSelectedText.classList.remove('open');
+                    }
+                });
+                if (this.searchInput && this.clearBtn) {
+                    this.searchInput.addEventListener('input', () => this.filterOptions());
+                    this.clearBtn.addEventListener('click', () => this.clearSearch());
+                }
+            }
+
+            async loadOptions() {
+                try {
+                    const response = await fetch(this.apiUrl);
+                    const items = await response.json();
+                    for (const item of items) {
+                        const label = document.createElement('label');
+                        label.innerHTML = `<input type="checkbox" value="${item[this.valueKey]}">${item[this.labelKey]}`;
+                        this.dropdownList.appendChild(label);
+                    }
+                    this.dropdownCheckboxes = this.dropdownList.querySelectorAll('input[type="checkbox"]');
+                    for (const cb of this.dropdownCheckboxes) {
+                        cb.addEventListener('change', () => this.updateSelectedText());
+                    }
+                    // Show search box if more than 5 items
+                    if (items.length > 5 && this.searchContainer) {
+                        this.searchContainer.style.display = 'block';
+                    }
+                    this.updateSelectedText();
+                } catch (error) {
+                    console.error('Error fetching dropdown options:', error);
+                }
+            }
+
+            toggleDropdown(e) {
+                //e.stopPropagation();
+                this.dropdownList.style.display = this.dropdownList.style.display === 'block' ? 'none' : 'block';
+                this.dropdownSelectedText.classList.toggle('open');
+            }
+
+            updateSelectedText() {
+                const selectedValues = Array.from(this.dropdownCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                this.dropdownSelectedText.textContent = selectedValues.length ?
+                    (selectedValues.length > 1 ? this.multipleItemsSelectedPlaceholder.replace('{count}', selectedValues.length.toString()) : this.oneItemSelectedPlaceholder)
+                    : this.noneSelectedPlaceholder;
+                this.selectedValuesField.value = selectedValues.join(',');
+                if (this.onChange) this.onChange(selectedValues);
+            }
+
+            filterOptions() {
+                const filter = this.searchInput.value.toLowerCase();
+                for (const cb of this.dropdownCheckboxes) {
+                    const label = cb.parentElement;
+                    label.style.display = cb.value.toLowerCase().includes(filter) || label.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+                }
+                this.clearBtn.style.display = filter ? 'block' : 'none';
+            }
+
+            clearSearch() {
+                this.searchInput.value = '';
+                this.clearBtn.style.display = 'none';
+                for (const cb of this.dropdownCheckboxes) {
+                    cb.parentElement.style.display = 'block';
+                }
+                this.searchInput.focus();
             }
         }
 

@@ -15,6 +15,8 @@ namespace Alt_Support.Services
         Task<bool> AddCommentToTicketAsync(string ticketKey, string comment);
         Task<bool> UpdateTicketCustomFieldAsync(string ticketKey, string fieldId, object value);
         Task<List<TicketInfo>> SearchTicketsAsync(string jqlQuery, int maxResults = 100);
+        Task<List<ProjectInfo>> GetProjectsAsync();
+        Task<List<IssueTypeInfo>> GetIssueTypesAsync();
     }
 
     public class JiraService : IJiraService
@@ -321,6 +323,62 @@ namespace Alt_Support.Services
             {
                 _logger.LogError(ex, $"Error updating custom field {fieldId} for ticket {ticketKey}");
                 return false;
+            }
+        }
+
+        public async Task<List<ProjectInfo>> GetProjectsAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"/rest/api/3/project");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var projects = JsonSerializer.Deserialize<List<ProjectInfo>>(json, options);
+                    return projects ?? new List<ProjectInfo>();
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to retrieve projects: {response.StatusCode}");
+                    return new List<ProjectInfo>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving projects");
+                return new List<ProjectInfo>();
+            }
+        }
+
+        public async Task<List<IssueTypeInfo>> GetIssueTypesAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync($"/rest/api/3/issuetype");
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    var issueTypes = JsonSerializer.Deserialize<List<IssueTypeInfo>>(json, options);
+                    return issueTypes ?? new List<IssueTypeInfo>();
+                }
+                else
+                {
+                    _logger.LogWarning($"Failed to retrieve issue types: {response.StatusCode}");
+                    return new List<IssueTypeInfo>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving issue types");
+                return new List<IssueTypeInfo>();
             }
         }
 
