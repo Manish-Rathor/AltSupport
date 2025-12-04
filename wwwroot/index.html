@@ -169,6 +169,155 @@
             padding: 30px;
         }
 
+        .search-results-grid {
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .search-results-grid.show {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-count {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .grid-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .grid-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .grid-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .grid-table th {
+            padding: 15px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .grid-table th:last-child {
+            border-right: none;
+        }
+
+        .grid-table tbody tr {
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .grid-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .grid-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .grid-table td {
+            padding: 12px;
+            font-size: 0.9rem;
+            color: #333;
+            vertical-align: top;
+        }
+
+        .ticket-key-cell {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .ticket-key-cell:hover {
+            text-decoration: underline;
+        }
+
+        .description-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-open { background: #d1ecf1; color: #0c5460; }
+        .status-in-progress { background: #fff3cd; color: #856404; }
+        .status-closed { background: #d4edda; color: #155724; }
+        .status-resolved { background: #d4edda; color: #155724; }
+        .status-done { background: #d4edda; color: #155724; }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .pagination-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
         .ticket-details {
             background: #f8f9fa;
             border-radius: 10px;
@@ -400,6 +549,26 @@
             color: white;
         }
 
+        .back-to-results-btn {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-right: 10px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-to-results-btn:hover {
+            background: #5a6268;
+            color: white;
+        }
+
         .clear-btn {
             position: absolute;
             right: 15px;
@@ -470,6 +639,34 @@
         </div>
 
         <div class="results-section">
+            <div id="searchResultsGrid" class="search-results-grid">
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount"></div>
+                    <button id="clearResultsBtn" class="jira-link" style="padding: 8px 16px; font-size: 0.9rem;">
+                        Clear Results
+                    </button>
+                </div>
+                <div class="grid-container">
+                    <table class="grid-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">Ticket #</th>
+                                <th style="width: 300px;">Description</th>
+                                <th style="width: 140px;">Assignee</th>
+                                <th style="width: 130px;">Status</th>
+                                <th style="width: 140px;">Sprint</th>
+                                <th style="width: 130px;">Last Updated</th>
+                                <th style="width: 120px;">Fix Version</th>
+                                <th style="width: 140px;">Component</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gridTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+
             <div id="ticketDetails" class="ticket-details">
                 <div id="loadingIndicator" class="loading">Loading ticket details...</div>
                 <div id="ticketContent" style="display: none;"></div>
@@ -483,6 +680,11 @@
             constructor() {
                 this.searchInput = document.getElementById('searchInput');
                 this.autocompleteDropdown = document.getElementById('autocompleteDropdown');
+                this.searchResultsGrid = document.getElementById('searchResultsGrid');
+                this.gridTableBody = document.getElementById('gridTableBody');
+                this.pagination = document.getElementById('pagination');
+                this.resultsCount = document.getElementById('resultsCount');
+                this.clearResultsBtn = document.getElementById('clearResultsBtn');
                 this.ticketDetails = document.getElementById('ticketDetails');
                 this.loadingIndicator = document.getElementById('loadingIndicator');
                 this.ticketContent = document.getElementById('ticketContent');
@@ -494,6 +696,10 @@
                 this.debounceTimer = null;
                 this.selectedIndex = -1;
                 this.suggestions = [];
+                this.searchResults = [];
+                this.currentPage = 1;
+                this.pageSize = 10;
+                this.totalPages = 0;
                 
                 this.initEventListeners();
             }
@@ -504,6 +710,7 @@
                 this.searchInput.addEventListener('blur', () => this.handleBlur());
                 this.searchInput.addEventListener('focus', () => this.handleFocus());
                 this.clearBtn.addEventListener('click', () => this.clearSearch());
+                this.clearResultsBtn.addEventListener('click', () => this.clearAllResults());
                 
                 // Hide dropdown when clicking outside
                 document.addEventListener('click', (e) => {
@@ -531,6 +738,17 @@
             }
 
             handleKeyDown(e) {
+                // Handle Enter key for search
+                if (e.key === 'Enter') {
+                    const query = this.searchInput.value.trim();
+                    if (query.length >= 2) {
+                        e.preventDefault();
+                        this.hideAutocomplete();
+                        this.performSearch(query);
+                        return;
+                    }
+                }
+
                 if (!this.autocompleteDropdown.style.display || this.autocompleteDropdown.style.display === 'none') {
                     return;
                 }
@@ -545,12 +763,6 @@
                         e.preventDefault();
                         this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
                         this.highlightSuggestion();
-                        break;
-                    case 'Enter':
-                        e.preventDefault();
-                        if (this.selectedIndex >= 0) {
-                            this.selectSuggestion(this.suggestions[this.selectedIndex]);
-                        }
                         break;
                     case 'Escape':
                         this.hideAutocomplete();
@@ -576,6 +788,14 @@
                 this.searchInput.value = '';
                 this.clearBtn.style.display = 'none';
                 this.hideAutocomplete();
+                this.searchInput.focus();
+            }
+
+            clearAllResults() {
+                this.searchInput.value = '';
+                this.clearBtn.style.display = 'none';
+                this.hideAutocomplete();
+                this.hideSearchResults();
                 this.hideTicketDetails();
                 this.searchInput.focus();
             }
@@ -663,11 +883,205 @@
                 this.searchInput.value = suggestion.ticketKey;
                 this.hideAutocomplete();
                 this.clearBtn.style.display = 'block';
+                this.hideSearchResults();
                 this.loadTicketDetails(suggestion.ticketKey);
+            }
+
+            async performSearch(query) {
+                try {
+                    this.hideTicketDetails();
+                    this.showSearchResults();
+                    
+                    // Show loading in grid
+                    this.gridTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><div class="loading">Searching tickets...</div></td></tr>';
+                    this.pagination.innerHTML = '';
+                    
+                    const jiraOnly = this.jiraOnlyCheckbox.checked;
+                    const params = new URLSearchParams({
+                        query: query,
+                        jiraOnly: jiraOnly,
+                        maxResults: 100
+                    });
+
+                    const endpoint = jiraOnly ? '/api/tickets/search/jira' : '/api/tickets/search';
+                    const response = await fetch(`${endpoint}?${params}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Failed to search: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.searchResults = data.tickets || [];
+                    this.currentPage = 1;
+                    this.totalPages = Math.ceil(this.searchResults.length / this.pageSize);
+                    
+                    if (this.searchResults.length === 0) {
+                        this.gridTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">No tickets found for "' + this.escapeHtml(query) + '"</td></tr>';
+                        this.resultsCount.textContent = 'No results found';
+                    } else {
+                        this.resultsCount.textContent = `Found ${this.searchResults.length} ticket${this.searchResults.length !== 1 ? 's' : ''} for "${query}"`;
+                        this.renderGrid();
+                        this.renderPagination();
+                    }
+                } catch (error) {
+                    console.error('Error searching tickets:', error);
+                    this.gridTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #dc3545;">Error: ' + this.escapeHtml(error.message) + '</td></tr>';
+                    this.resultsCount.textContent = 'Search failed';
+                }
+            }
+
+            renderGrid() {
+                const startIndex = (this.currentPage - 1) * this.pageSize;
+                const endIndex = Math.min(startIndex + this.pageSize, this.searchResults.length);
+                const pageTickets = this.searchResults.slice(startIndex, endIndex);
+                
+                this.gridTableBody.innerHTML = pageTickets.map(ticket => `
+                    <tr onclick="window.ticketApp.loadTicketDetails('${ticket.ticketKey}')">
+                        <td>
+                            <span class="ticket-key-cell">${this.escapeHtml(ticket.ticketKey)}</span>
+                        </td>
+                        <td>
+                            <div class="description-cell" title="${this.escapeHtml(ticket.title || ticket.description || 'No description')}"}>
+                                ${this.escapeHtml(ticket.title || ticket.description || 'No description')}
+                            </div>
+                        </td>
+                        <td>${this.escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                        <td>
+                            <span class="status-badge ${this.getStatusClass(ticket.status)}">
+                                ${this.escapeHtml(ticket.status || 'N/A')}
+                            </span>
+                        </td>
+                        <td>${this.escapeHtml(ticket.sprint || 'No Sprint')}</td>
+                        <td>${this.formatShortDate(ticket.updatedDate)}</td>
+                        <td>${this.escapeHtml(this.getFirstItem(ticket.fixVersions))}</td>
+                        <td>${this.escapeHtml(this.getFirstItem(ticket.components))}</td>
+                    </tr>
+                `).join('');
+            }
+
+            renderPagination() {
+                if (this.totalPages <= 1) {
+                    this.pagination.innerHTML = '';
+                    return;
+                }
+
+                let paginationHTML = `
+                    <button class="pagination-btn" ${this.currentPage === 1 ? 'disabled' : ''} 
+                            onclick="window.ticketApp.goToPage(${this.currentPage - 1})">
+                        ← Previous
+                    </button>
+                `;
+
+                // Show page numbers
+                const maxVisiblePages = 5;
+                let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+                let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+                
+                if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                }
+
+                if (startPage > 1) {
+                    paginationHTML += `
+                        <button class="pagination-btn" onclick="window.ticketApp.goToPage(1)">1</button>
+                        ${startPage > 2 ? '<span class="pagination-info">...</span>' : ''}
+                    `;
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `
+                        <button class="pagination-btn ${i === this.currentPage ? 'active' : ''}" 
+                                onclick="window.ticketApp.goToPage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+
+                if (endPage < this.totalPages) {
+                    paginationHTML += `
+                        ${endPage < this.totalPages - 1 ? '<span class="pagination-info">...</span>' : ''}
+                        <button class="pagination-btn" onclick="window.ticketApp.goToPage(${this.totalPages})">${this.totalPages}</button>
+                    `;
+                }
+
+                paginationHTML += `
+                    <button class="pagination-btn" ${this.currentPage === this.totalPages ? 'disabled' : ''} 
+                            onclick="window.ticketApp.goToPage(${this.currentPage + 1})">
+                        Next →
+                    </button>
+                    <span class="pagination-info" style="margin-left: 15px;">
+                        Page ${this.currentPage} of ${this.totalPages} 
+                        (${this.searchResults.length} total)
+                    </span>
+                `;
+
+                this.pagination.innerHTML = paginationHTML;
+            }
+
+            goToPage(page) {
+                if (page < 1 || page > this.totalPages || page === this.currentPage) {
+                    return;
+                }
+                this.currentPage = page;
+                this.renderGrid();
+                this.renderPagination();
+                
+                // Scroll to top of results
+                this.searchResultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            getStatusClass(status) {
+                if (!status) return '';
+                const s = status.toLowerCase();
+                if (s.includes('open') || s.includes('new') || s.includes('todo')) return 'status-open';
+                if (s.includes('progress') || s.includes('development') || s.includes('review')) return 'status-in-progress';
+                if (s.includes('closed')) return 'status-closed';
+                if (s.includes('resolved')) return 'status-resolved';
+                if (s.includes('done')) return 'status-done';
+                return '';
+            }
+
+            getFirstItem(array) {
+                if (!array || !Array.isArray(array) || array.length === 0) {
+                    return 'N/A';
+                }
+                return array[0] + (array.length > 1 ? ` (+${array.length - 1})` : '');
+            }
+
+            formatShortDate(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 0) return 'Today';
+                    if (diffDays === 1) return 'Yesterday';
+                    if (diffDays < 7) return `${diffDays}d ago`;
+                    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+                    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+                    
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return 'N/A';
+                }
+            }
+
+            showSearchResults() {
+                this.searchResultsGrid.classList.add('show');
+            }
+
+            hideSearchResults() {
+                this.searchResultsGrid.classList.remove('show');
             }
 
             async loadTicketDetails(ticketKey) {
                 try {
+                    // Store whether we came from search results
+                    this.hasSearchResults = this.searchResults.length > 0;
+                    
+                    this.hideSearchResults();
                     this.showTicketDetails();
                     this.showLoading();
                     
@@ -678,6 +1092,7 @@
                     }
                     
                     const ticket = await response.json();
+                    this.currentTicket = ticket;
                     this.renderTicketDetails(ticket);
                 } catch (error) {
                     console.error('Error loading ticket details:', error);
@@ -685,16 +1100,31 @@
                 }
             }
 
+            backToResults() {
+                this.hideTicketDetails();
+                this.showSearchResults();
+                
+                // Scroll to top of results
+                this.searchResultsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
             renderTicketDetails(ticket) {
+                const backButton = this.hasSearchResults ? 
+                    '<button onclick="window.ticketApp.backToResults()" class="back-to-results-btn">← Back to Results</button>' : 
+                    '';
+                
                 const content = `
                     <div class="detail-header">
                         <div class="detail-title">
                             <h2>${this.escapeHtml(ticket.title)}</h2>
                             <div class="ticket-key-large">${ticket.ticketKey}</div>
                         </div>
-                        <a href="${ticket.jiraUrl}" target="_blank" class="jira-link">
-                            🔗 Open in Jira
-                        </a>
+                        <div>
+                            ${backButton}
+                            <a href="${ticket.jiraUrl}" target="_blank" class="jira-link">
+                                🔗 Open in Jira
+                            </a>
+                        </div>
                     </div>
 
                     ${this.renderPRLinks(ticket.prLinks)}
