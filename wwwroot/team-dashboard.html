@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMI Team Bug Dashboard - Alt Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        .header-nav {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .nav-link {
+            padding: 10px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-group label {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .refresh-btn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .summary-card.total {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .summary-card.open {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .summary-card.resolved {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .summary-card.rate {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .summary-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 18px;
+        }
+
+        .summary-card.total .summary-icon { background: rgba(99, 102, 241, 0.3); }
+        .summary-card.open .summary-icon { background: rgba(239, 68, 68, 0.3); }
+        .summary-card.resolved .summary-icon { background: rgba(16, 185, 129, 0.3); }
+        .summary-card.rate .summary-icon { background: rgba(245, 158, 11, 0.3); }
+
+        .summary-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .summary-label {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Teams Grid */
+        .teams-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .team-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .team-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .team-card-header {
+            padding: 24px 24px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .team-card:nth-child(1) .team-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .team-card:nth-child(2) .team-card-header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .team-card:nth-child(3) .team-card-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .team-card:nth-child(4) .team-card-header { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .team-card:nth-child(5) .team-card-header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .team-card:nth-child(6) .team-card-header { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .team-card:nth-child(7) .team-card-header { background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); }
+
+        .team-card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .team-name {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .team-component {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.85);
+            font-weight: 500;
+            margin-top: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .team-card-body {
+            padding: 24px;
+        }
+
+        .bug-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 16px 10px;
+            background: var(--light);
+            border-radius: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: #e2e8f0;
+            transform: scale(1.05);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-item.total .stat-value { color: var(--primary); }
+        .stat-item.open .stat-value { color: var(--danger); }
+        .stat-item.resolved .stat-value { color: var(--success); }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Progress Bar */
+        .resolution-progress {
+            margin-top: 5px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .progress-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .progress-value {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, #34d399 100%);
+            border-radius: 10px;
+            transition: width 1s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* View Details Button */
+        .view-details-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .view-details-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Loading State */
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Error State */
+        .error-container {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            color: #fca5a5;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: #a5b4fc;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .team-card {
+            animation: fadeIn 0.6s ease-out backwards;
+        }
+
+        .team-card:nth-child(1) { animation-delay: 0.1s; }
+        .team-card:nth-child(2) { animation-delay: 0.15s; }
+        .team-card:nth-child(3) { animation-delay: 0.2s; }
+        .team-card:nth-child(4) { animation-delay: 0.25s; }
+        .team-card:nth-child(5) { animation-delay: 0.3s; }
+        .team-card:nth-child(6) { animation-delay: 0.35s; }
+        .team-card:nth-child(7) { animation-delay: 0.4s; }
+
+        /* Timestamp */
+        .timestamp {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-bottom: 30px;
+        }
+
+        .timestamp strong {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <h1>🐛 CMI Team Bug Dashboard</h1>
+            <p>Real-time bug tracking and resolution metrics for all CMI teams</p>
+            <nav class="header-nav">
+                <a href="index.html" class="nav-link">🔍 Ticket Search</a>
+                <a href="team-dashboard.html" class="nav-link active">📊 Team Dashboard</a>
+            </nav>
+        </header>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="daysFilter">📅 Time Range:</label>
+                <select id="daysFilter">
+                    <option value="">All Time</option>
+                    <option value="7">Last 7 Days</option>
+                    <option value="14">Last 14 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="60">Last 60 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="180">Last 6 Months</option>
+                    <option value="365">Last Year</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="projectFilter">📁 Project:</label>
+                <input type="text" id="projectFilter" placeholder="e.g., EP" style="width: 120px;">
+            </div>
+            <button id="refreshBtn" class="refresh-btn">
+                <span>🔄</span> Refresh Data
+            </button>
+        </div>
+
+        <div id="timestamp" class="timestamp"></div>
+
+        <div id="content">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">Loading team bug statistics...</div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Built with ❤️ for CMI Teams | <a href="/swagger">API Documentation</a></p>
+        </footer>
+    </div>
+
+    <script>
+        class TeamDashboard {
+            constructor() {
+                this.contentEl = document.getElementById('content');
+                this.timestampEl = document.getElementById('timestamp');
+                this.daysFilter = document.getElementById('daysFilter');
+                this.projectFilter = document.getElementById('projectFilter');
+                this.refreshBtn = document.getElementById('refreshBtn');
+                
+                this.data = null;
+                
+                this.init();
+            }
+
+            init() {
+                this.refreshBtn.addEventListener('click', () => this.loadData());
+                this.daysFilter.addEventListener('change', () => this.loadData());
+                
+                // Load data on page load
+                this.loadData();
+                
+                // Auto-refresh every 5 minutes
+                setInterval(() => this.loadData(), 5 * 60 * 1000);
+            }
+
+            async loadData() {
+                try {
+                    this.showLoading();
+                    this.refreshBtn.disabled = true;
+                    
+                    const params = new URLSearchParams();
+                    
+                    const daysBack = this.daysFilter.value;
+                    if (daysBack) {
+                        params.append('daysBack', daysBack);
+                    }
+                    
+                    const project = this.projectFilter.value.trim();
+                    if (project) {
+                        params.append('project', project);
+                    }
+                    
+                    const url = `/api/tickets/statistics/bugs-by-team${params.toString() ? '?' + params.toString() : ''}`;
+                    
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    this.data = await response.json();
+                    this.render();
+                    this.updateTimestamp();
+                    
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    this.showError(error.message);
+                } finally {
+                    this.refreshBtn.disabled = false;
+                }
+            }
+
+            showLoading() {
+                this.contentEl.innerHTML = `
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">Loading team bug statistics...</div>
+                    </div>
+                `;
+            }
+
+            showError(message) {
+                this.contentEl.innerHTML = `
+                    <div class="error-container">
+                        <div class="error-icon">❌</div>
+                        <div class="error-message">Failed to load data: ${this.escapeHtml(message)}</div>
+                        <button onclick="window.dashboard.loadData()" class="refresh-btn" style="margin-top: 20px;">
+                            🔄 Try Again
+                        </button>
+                    </div>
+                `;
+            }
+
+            updateTimestamp() {
+                if (this.data && this.data.generatedAt) {
+                    const date = new Date(this.data.generatedAt);
+                    this.timestampEl.innerHTML = `
+                        <strong>Last Updated:</strong> ${date.toLocaleString()} 
+                        ${this.data.filteredByDaysBack ? `| <strong>Showing:</strong> Last ${this.data.filteredByDaysBack} days` : '| <strong>Showing:</strong> All Time'}
+                        ${this.data.filteredByProject ? ` | <strong>Project:</strong> ${this.data.filteredByProject}` : ''}
+                    `;
+                }
+            }
+
+            render() {
+                if (!this.data || !this.data.teams) {
+                    this.showError('No data available');
+                    return;
+                }
+
+                const summary = this.data.summary;
+                const teams = this.data.teams;
+
+                this.contentEl.innerHTML = `
+                    <!-- Summary Cards -->
+                    <div class="summary-grid fade-in">
+                        <div class="summary-card total">
+                            <div class="summary-icon">🐛</div>
+                            <div class="summary-value">${this.formatNumber(summary.totalBugsAcrossAllTeams)}</div>
+                            <div class="summary-label">Total Bugs</div>
+                        </div>
+                        <div class="summary-card open">
+                            <div class="summary-icon">🔴</div>
+                            <div class="summary-value">${this.formatNumber(summary.totalOpenBugs)}</div>
+                            <div class="summary-label">Open Bugs</div>
+                        </div>
+                        <div class="summary-card resolved">
+                            <div class="summary-icon">✅</div>
+                            <div class="summary-value">${this.formatNumber(summary.totalResolvedBugs)}</div>
+                            <div class="summary-label">Resolved Bugs</div>
+                        </div>
+                        <div class="summary-card rate">
+                            <div class="summary-icon">📈</div>
+                            <div class="summary-value">${summary.overallResolutionRate}%</div>
+                            <div class="summary-label">Resolution Rate</div>
+                        </div>
+                    </div>
+
+                    <!-- Teams Section -->
+                    <section class="teams-section">
+                        <h2 class="section-title">
+                            <span>👥</span> Team Performance (${teams.length} Teams)
+                        </h2>
+                        <div class="teams-grid">
+                            ${teams.map((team, index) => this.renderTeamCard(team, index)).join('')}
+                        </div>
+                    </section>
+                `;
+
+                // Animate progress bars after render
+                setTimeout(() => {
+                    document.querySelectorAll('.progress-fill').forEach(bar => {
+                        const width = bar.dataset.width;
+                        bar.style.width = width + '%';
+                    });
+                }, 100);
+            }
+
+            renderTeamCard(team, index) {
+                return `
+                    <div class="team-card" onclick="window.dashboard.viewTeamDetails('${team.component}')">
+                        <div class="team-card-header">
+                            <div class="team-name">${this.escapeHtml(team.team)}</div>
+                            <div class="team-component">Component: ${this.escapeHtml(team.component)}</div>
+                        </div>
+                        <div class="team-card-body">
+                            <div class="bug-stats">
+                                <div class="stat-item total">
+                                    <div class="stat-value">${team.totalBugs}</div>
+                                    <div class="stat-label">Total</div>
+                                </div>
+                                <div class="stat-item open">
+                                    <div class="stat-value">${team.openBugs}</div>
+                                    <div class="stat-label">Open</div>
+                                </div>
+                                <div class="stat-item resolved">
+                                    <div class="stat-value">${team.resolvedBugs}</div>
+                                    <div class="stat-label">Resolved</div>
+                                </div>
+                            </div>
+                            <div class="resolution-progress">
+                                <div class="progress-header">
+                                    <span class="progress-label">Resolution Rate</span>
+                                    <span class="progress-value">${team.resolutionRate}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" data-width="${team.resolutionRate}" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <button class="view-details-btn">
+                                <span>📋</span> View Bug Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async viewTeamDetails(component) {
+                try {
+                    const params = new URLSearchParams();
+                    
+                    const daysBack = this.daysFilter.value;
+                    if (daysBack) {
+                        params.append('daysBack', daysBack);
+                    }
+                    
+                    const project = this.projectFilter.value.trim();
+                    if (project) {
+                        params.append('project', project);
+                    }
+                    
+                    params.append('pageSize', '100');
+                    
+                    const url = `/api/tickets/statistics/bugs-by-team/${encodeURIComponent(component)}?${params.toString()}`;
+                    
+                    // Open in new modal or navigate
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    // Show bug list modal
+                    this.showBugListModal(data);
+                    
+                } catch (error) {
+                    console.error('Error loading team details:', error);
+                    alert('Failed to load team details: ' + error.message);
+                }
+            }
+
+            showBugListModal(data) {
+                // Create modal overlay
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 20px;
+                        max-width: 1200px;
+                        width: 100%;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    ">
+                        <div style="
+                            padding: 24px;
+                            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                            color: white;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.5rem;">${this.escapeHtml(data.team)}</h2>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                                    ${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved
+                                </p>
+                            </div>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
+                                background: rgba(255,255,255,0.2);
+                                border: none;
+                                color: white;
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.5rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div style="overflow-y: auto; flex: 1; padding: 20px;">
+                            ${data.tickets && data.tickets.length > 0 ? `
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f1f5f9;">
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Ticket</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Title</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Status</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Priority</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Assignee</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.tickets.map(ticket => `
+                                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                                <td style="padding: 12px;">
+                                                    <a href="${ticket.jiraUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                                                        ${this.escapeHtml(ticket.ticketKey)}
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(ticket.title)}">
+                                                    ${this.escapeHtml(ticket.title)}
+                                                </td>
+                                                <td style="padding: 12px;">
+                                                    <span style="
+                                                        padding: 4px 10px;
+                                                        border-radius: 12px;
+                                                        font-size: 0.8rem;
+                                                        font-weight: 600;
+                                                        background: ${this.getStatusColor(ticket.status)};
+                                                        color: white;
+                                                    ">${this.escapeHtml(ticket.status)}</span>
+                                                </td>
+                                                <td style="padding: 12px;">${this.escapeHtml(ticket.priority || 'N/A')}</td>
+                                                <td style="padding: 12px;">${this.escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                                                <td style="padding: 12px;">${this.formatDate(ticket.createdDate)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            ` : '<p style="text-align: center; color: #666; padding: 40px;">No bugs found for this team.</p>'}
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                // Close on backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Close on Escape key
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            }
+
+            getStatusColor(status) {
+                if (!status) return '#64748b';
+                const s = status.toLowerCase();
+                if (s.includes('done') || s.includes('resolved') || s.includes('closed')) return '#10b981';
+                if (s.includes('progress') || s.includes('review')) return '#f59e0b';
+                if (s.includes('open') || s.includes('new') || s.includes('todo')) return '#ef4444';
+                return '#64748b';
+            }
+
+            formatNumber(num) {
+                if (num >= 1000) {
+                    return (num / 1000).toFixed(1) + 'K';
+                }
+                return num.toString();
+            }
+
+            formatDate(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                } catch {
+                    return 'N/A';
+                }
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            window.dashboard = new TeamDashboard();
+        });
+    </script>
+</body>
+</html>
+

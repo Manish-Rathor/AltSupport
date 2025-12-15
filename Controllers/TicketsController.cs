@@ -1,6 +1,8 @@
 using Alt_Support.Models;
 using Alt_Support.Services;
+using Alt_Support.Configuration;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Alt_Support.Controllers
 {
@@ -11,17 +13,20 @@ namespace Alt_Support.Controllers
         private readonly ITicketDataService _ticketDataService;
         private readonly IJiraService _jiraService;
         private readonly GitHubService _githubService;
+        private readonly ApplicationConfiguration _config;
         private readonly ILogger<TicketsController> _logger;
 
         public TicketsController(
             ITicketDataService ticketDataService, 
             IJiraService jiraService,
             GitHubService githubService,
+            IOptions<ApplicationConfiguration> config,
             ILogger<TicketsController> logger)
         {
             _ticketDataService = ticketDataService;
             _jiraService = jiraService;
             _githubService = githubService;
+            _config = config.Value;
             _logger = logger;
         }
 
@@ -148,6 +153,186 @@ namespace Alt_Support.Controllers
             {
                 _logger.LogError(ex, "Error retrieving statistics");
                 return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get bug ticket counts by CMI team (based on component)
+        /// </summary>
+        [HttpGet("statistics/bugs-by-team")]
+        public async Task<ActionResult> GetBugsByTeam(
+            [FromQuery] string? project = null,
+            [FromQuery] int? daysBack = null)
+        {
+            try
+            {
+                var teamComponents = _config.Teams.CMITeamComponents;
+                var teamPrefix = _config.Teams.TeamNamePrefix;
+                
+                if (teamComponents == null || !teamComponents.Any())
+                {
+                    return BadRequest("No team components configured. Please add CMITeamComponents to appsettings.json");
+                }
+
+                _logger.LogInformation($"Fetching bug statistics for {teamComponents.Count} CMI teams");
+
+                var bugsByTeam = new List<object>();
+                var totalBugsAcrossTeams = 0;
+                var totalOpenBugsAcrossTeams = 0;
+
+                foreach (var component in teamComponents)
+                {
+                    // Build JQL query for bugs with this component
+                    var jqlParts = new List<string> { "type = Bug", $"component = \"{component}\"" };
+                    
+                    if (!string.IsNullOrEmpty(project))
+                    {
+                        jqlParts.Add($"project = \"{project}\"");
+                    }
+                    
+                    if (daysBack.HasValue && daysBack.Value > 0)
+                    {
+                        jqlParts.Add($"created >= -{daysBack.Value}d");
+                    }
+                    
+                    var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+                    
+                    _logger.LogInformation($"Querying bugs for team {component}: {jqlQuery}");
+                    
+                    var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                    
+                    var totalBugs = tickets.Count;
+                    var openBugs = tickets.Count(t => 
+                        t.Status != "Done" && 
+                        t.Status != "Closed" && 
+                        t.Status != "Resolved");
+                    var resolvedBugs = totalBugs - openBugs;
+                    
+                    totalBugsAcrossTeams += totalBugs;
+                    totalOpenBugsAcrossTeams += openBugs;
+
+                    bugsByTeam.Add(new
+                    {
+                        Team = $"{teamPrefix} {component}",
+                        Component = component,
+                        TotalBugs = totalBugs,
+                        OpenBugs = openBugs,
+                        ResolvedBugs = resolvedBugs,
+                        ResolutionRate = totalBugs > 0 ? Math.Round((double)resolvedBugs / totalBugs * 100, 1) : 0
+                    });
+                }
+
+                // Sort by total bugs descending
+                var sortedBugsByTeam = bugsByTeam
+                    .OrderByDescending(t => ((dynamic)t).TotalBugs)
+                    .ToList();
+
+                var response = new
+                {
+                    GeneratedAt = DateTime.UtcNow,
+                    FilteredByProject = project,
+                    FilteredByDaysBack = daysBack,
+                    TotalTeams = bugsByTeam.Count,
+                    Summary = new
+                    {
+                        TotalBugsAcrossAllTeams = totalBugsAcrossTeams,
+                        TotalOpenBugs = totalOpenBugsAcrossTeams,
+                        TotalResolvedBugs = totalBugsAcrossTeams - totalOpenBugsAcrossTeams,
+                        OverallResolutionRate = totalBugsAcrossTeams > 0 
+                            ? Math.Round((double)(totalBugsAcrossTeams - totalOpenBugsAcrossTeams) / totalBugsAcrossTeams * 100, 1) 
+                            : 0
+                    },
+                    Teams = sortedBugsByTeam
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving bugs by team statistics");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get detailed bug list for a specific CMI team
+        /// </summary>
+        [HttpGet("statistics/bugs-by-team/{componentName}")]
+        public async Task<ActionResult> GetBugsForTeam(
+            string componentName,
+            [FromQuery] string? project = null,
+            [FromQuery] int? daysBack = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var teamComponents = _config.Teams.CMITeamComponents;
+                var teamPrefix = _config.Teams.TeamNamePrefix;
+                
+                // Validate component name
+                if (!teamComponents.Contains(componentName, StringComparer.OrdinalIgnoreCase))
+                {
+                    return BadRequest($"Invalid team component '{componentName}'. Valid options: {string.Join(", ", teamComponents)}");
+                }
+
+                // Build JQL query
+                var jqlParts = new List<string> { "type = Bug", $"component = \"{componentName}\"" };
+                
+                if (!string.IsNullOrEmpty(project))
+                {
+                    jqlParts.Add($"project = \"{project}\"");
+                }
+                
+                if (daysBack.HasValue && daysBack.Value > 0)
+                {
+                    jqlParts.Add($"created >= -{daysBack.Value}d");
+                }
+                
+                var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+                
+                _logger.LogInformation($"Fetching bugs for team {componentName}: {jqlQuery}");
+                
+                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                
+                // Apply pagination
+                var skip = (page - 1) * pageSize;
+                var pagedTickets = allTickets.Skip(skip).Take(pageSize).ToList();
+
+                var response = new
+                {
+                    Team = $"{teamPrefix} {componentName}",
+                    Component = componentName,
+                    FilteredByProject = project,
+                    FilteredByDaysBack = daysBack,
+                    TotalBugs = allTickets.Count,
+                    OpenBugs = allTickets.Count(t => t.Status != "Done" && t.Status != "Closed" && t.Status != "Resolved"),
+                    ResolvedBugs = allTickets.Count(t => t.Status == "Done" || t.Status == "Closed" || t.Status == "Resolved"),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)allTickets.Count / pageSize),
+                    Tickets = pagedTickets.Select(t => new
+                    {
+                        t.TicketKey,
+                        t.Title,
+                        t.Status,
+                        t.Priority,
+                        t.Assignee,
+                        t.Reporter,
+                        t.CreatedDate,
+                        t.UpdatedDate,
+                        t.ResolvedDate,
+                        t.Resolution,
+                        JiraUrl = $"https://navex.atlassian.net/browse/{t.TicketKey}"
+                    })
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving bugs for team {componentName}");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
 
