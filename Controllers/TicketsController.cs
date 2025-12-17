@@ -833,5 +833,195 @@ namespace Alt_Support.Controllers
                 return StatusCode(500, new { error = "Failed to fetch PR details", message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get SusEng Kaveri (EthicsPoint) bug statistics
+        /// </summary>
+        [HttpGet("statistics/ethicspoint-bugs")]
+        public async Task<ActionResult> GetEthicspointBugs(
+            [FromQuery] string? project = "PRODSUP",
+            [FromQuery] int? daysBack = null)
+        {
+            try
+            {
+                const string componentName = "EthicsPoint";
+                const string ticketType = "SusEng Work";
+                const string teamName = "SusEng Kaveri";
+               
+                _logger.LogInformation($"Fetching {teamName} (EthicsPoint) statistics");
+ 
+                // Build JQL query for SusEng Work tickets with EthicsPoint component in PRODSUP project
+                var jqlParts = new List<string> { $"type = \"{ticketType}\"", $"component = \"{componentName}\"" };
+               
+                // Default to PRODSUP project for SusEng Kaveri team
+                if (!string.IsNullOrEmpty(project))
+                {
+                    jqlParts.Add($"project = \"{project}\"");
+                }
+               
+                if (daysBack.HasValue && daysBack.Value > 0)
+                {
+                    jqlParts.Add($"created >= -{daysBack.Value}d");
+                }
+               
+                var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+               
+                _logger.LogInformation($"Querying Ethicspoint bugs: {jqlQuery}");
+               
+                var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+               
+                var totalBugs = tickets.Count;
+                var openBugs = tickets.Count(t =>
+                    t.Status != "Done" &&
+                    t.Status != "Closed" &&
+                    t.Status != "Resolved");
+                var resolvedBugs = totalBugs - openBugs;
+ 
+                // Group by status for breakdown
+                var statusBreakdown = tickets
+                    .GroupBy(t => t.Status ?? "Unknown")
+                    .Select(g => new { Status = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count)
+                    .ToList();
+ 
+                // Group by priority for breakdown
+                var priorityBreakdown = tickets
+                    .GroupBy(t => t.Priority ?? "Unknown")
+                    .Select(g => new { Priority = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count)
+                    .ToList();
+ 
+                // Group by assignee for breakdown
+                var assigneeBreakdown = tickets
+                    .GroupBy(t => t.Assignee ?? "Unassigned")
+                    .Select(g => new { Assignee = g.Key, Count = g.Count() })
+                    .OrderByDescending(x => x.Count)
+                    .Take(10)
+                    .ToList();
+ 
+                var response = new
+                {
+                    GeneratedAt = DateTime.UtcNow,
+                    Component = componentName,
+                    FilteredByProject = project,
+                    FilteredByDaysBack = daysBack,
+                    Summary = new
+                    {
+                        TotalBugs = totalBugs,
+                        OpenBugs = openBugs,
+                        ResolvedBugs = resolvedBugs,
+                        ResolutionRate = totalBugs > 0
+                            ? Math.Round((double)resolvedBugs / totalBugs * 100, 1)
+                            : 0
+                    },
+                    StatusBreakdown = statusBreakdown,
+                    PriorityBreakdown = priorityBreakdown,
+                    AssigneeBreakdown = assigneeBreakdown
+                };
+ 
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving Ethicspoint bug statistics");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+ 
+        /// <summary>
+        /// Get detailed SusEng Kaveri (EthicsPoint) bug list with pagination
+        /// </summary>
+        [HttpGet("statistics/ethicspoint-bugs/tickets")]
+        public async Task<ActionResult> GetEthicspointBugTickets(
+            [FromQuery] string? project = "PRODSUP",
+            [FromQuery] int? daysBack = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? status = null,
+            [FromQuery] string? priority = null,
+            [FromQuery] string? assignee = null)
+        {
+            try
+            {
+                const string componentName = "EthicsPoint";
+                const string ticketType = "SusEng Work";
+ 
+                // Build JQL query for SusEng Work tickets
+                var jqlParts = new List<string> { $"type = \"{ticketType}\"", $"component = \"{componentName}\"" };
+               
+                if (!string.IsNullOrEmpty(project))
+                {
+                    jqlParts.Add($"project = \"{project}\"");
+                }
+               
+                if (daysBack.HasValue && daysBack.Value > 0)
+                {
+                    jqlParts.Add($"created >= -{daysBack.Value}d");
+                }
+ 
+                if (!string.IsNullOrEmpty(status))
+                {
+                    jqlParts.Add($"status = \"{status}\"");
+                }
+ 
+                if (!string.IsNullOrEmpty(priority))
+                {
+                    jqlParts.Add($"priority = \"{priority}\"");
+                }
+ 
+                if (!string.IsNullOrEmpty(assignee))
+                {
+                    jqlParts.Add($"assignee = \"{assignee}\"");
+                }
+               
+                var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+               
+                _logger.LogInformation($"Fetching Ethicspoint bugs: {jqlQuery}");
+               
+                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+               
+                // Apply pagination
+                var skip = (page - 1) * pageSize;
+                var pagedTickets = allTickets.Skip(skip).Take(pageSize).ToList();
+ 
+                var response = new
+                {
+                    Component = componentName,
+                    FilteredByProject = project,
+                    FilteredByDaysBack = daysBack,
+                    FilteredByStatus = status,
+                    FilteredByPriority = priority,
+                    FilteredByAssignee = assignee,
+                    TotalBugs = allTickets.Count,
+                    OpenBugs = allTickets.Count(t => t.Status != "Done" && t.Status != "Closed" && t.Status != "Resolved"),
+                    ResolvedBugs = allTickets.Count(t => t.Status == "Done" || t.Status == "Closed" || t.Status == "Resolved"),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = (int)Math.Ceiling((double)allTickets.Count / pageSize),
+                    Tickets = pagedTickets.Select(t => new
+                    {
+                        t.TicketKey,
+                        t.Title,
+                        t.Status,
+                        t.Priority,
+                        t.Assignee,
+                        t.Reporter,
+                        t.CreatedDate,
+                        t.UpdatedDate,
+                        t.ResolvedDate,
+                        t.Resolution,
+                        t.FixVersions,
+                        JiraUrl = $"https://navex.atlassian.net/browse/{t.TicketKey}"
+                    })
+                };
+ 
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving Ethicspoint bug tickets");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }
