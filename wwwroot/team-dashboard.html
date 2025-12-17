@@ -1516,6 +1516,10 @@
             }
 
             showBugListModal(data, statusFilter = 'all') {
+                // Store original tickets data
+                const allTickets = data.tickets || [];
+                let filteredTickets = [...allTickets];
+                
                 // Create modal overlay
                 const modal = document.createElement('div');
                 modal.style.cssText = `
@@ -1574,10 +1578,12 @@
                             <div>
                                 <h2 style="margin: 0; font-size: 1.5rem;">${headerIcon} ${this.escapeHtml(headerTitle)}</h2>
                                 <p style="margin: 5px 0 0 0; opacity: 0.9;">
-                                    ${statusFilter === 'all' 
-                                        ? `${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved`
-                                        : `Showing ${ticketCount} ${statusFilter} bugs`
-                                    }
+                                    <span id="modalTicketCount">
+                                        ${statusFilter === 'all' 
+                                            ? `${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved`
+                                            : `Showing ${ticketCount} ${statusFilter} bugs`
+                                        }
+                                    </span>
                                 </p>
                             </div>
                             <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
@@ -1594,9 +1600,75 @@
                                 justify-content: center;
                             ">×</button>
                         </div>
-                        <div style="overflow-y: auto; flex: 1; padding: 20px;">
+                        
+                        <!-- Search and Filter Section -->
+                        <div style="padding: 20px; background: #f8f9fa; border-bottom: 2px solid #e2e8f0;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <input type="text" id="modalSearchInput" placeholder="🔍 Search ticket #, title, assignee..." style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    outline: none;
+                                    transition: all 0.3s ease;
+                                ">
+                                <select id="modalStatusFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    outline: none;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Statuses</option>
+                                </select>
+                                <select id="modalPriorityFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    outline: none;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Priorities</option>
+                                </select>
+                                <select id="modalAssigneeFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    outline: none;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Assignees</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <button id="clearFiltersBtn" style="
+                                    padding: 8px 16px;
+                                    background: white;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.9rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.2s ease;
+                                ">Clear Filters</button>
+                                <span id="filterCountBadge" style="
+                                    display: none;
+                                    padding: 6px 12px;
+                                    background: var(--primary);
+                                    color: white;
+                                    border-radius: 12px;
+                                    font-size: 0.85rem;
+                                    font-weight: 600;
+                                "></span>
+                            </div>
+                        </div>
+                        
+                        <div style="overflow-y: auto; flex: 1; padding: 20px;" id="modalTableContainer">
                             ${data.tickets && data.tickets.length > 0 ? `
-                                <table style="width: 100%; border-collapse: collapse;">
+                                <table id="modalTicketTable" style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr style="background: #f1f5f9;">
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Ticket</th>
@@ -1608,7 +1680,7 @@
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Created</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="modalTicketTableBody">
                                         ${data.tickets.map(ticket => `
                                             <tr style="border-bottom: 1px solid #e2e8f0;">
                                                 <td style="padding: 12px;">
@@ -1652,6 +1724,158 @@
                 `;
 
                 document.body.appendChild(modal);
+                
+                // Get filter elements
+                const searchInput = document.getElementById('modalSearchInput');
+                const statusFilterSelect = document.getElementById('modalStatusFilter');
+                const priorityFilterSelect = document.getElementById('modalPriorityFilter');
+                const assigneeFilterSelect = document.getElementById('modalAssigneeFilter');
+                const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+                const filterCountBadge = document.getElementById('filterCountBadge');
+                const tableBody = document.getElementById('modalTicketTableBody');
+                const ticketCountSpan = document.getElementById('modalTicketCount');
+                
+                // Populate filter dropdowns with unique values
+                const statuses = [...new Set(allTickets.map(t => t.status).filter(Boolean))].sort();
+                const priorities = [...new Set(allTickets.map(t => t.priority).filter(Boolean))].sort();
+                const assignees = [...new Set(allTickets.map(t => t.assignee).filter(Boolean))].sort();
+                
+                statuses.forEach(status => {
+                    const option = document.createElement('option');
+                    option.value = status;
+                    option.textContent = status;
+                    statusFilterSelect.appendChild(option);
+                });
+                
+                priorities.forEach(priority => {
+                    const option = document.createElement('option');
+                    option.value = priority;
+                    option.textContent = priority;
+                    priorityFilterSelect.appendChild(option);
+                });
+                
+                assignees.forEach(assignee => {
+                    const option = document.createElement('option');
+                    option.value = assignee;
+                    option.textContent = assignee;
+                    assigneeFilterSelect.appendChild(option);
+                });
+                
+                // Filter function
+                const applyFilters = () => {
+                    const searchTerm = searchInput.value.toLowerCase().trim();
+                    const selectedStatus = statusFilterSelect.value;
+                    const selectedPriority = priorityFilterSelect.value;
+                    const selectedAssignee = assigneeFilterSelect.value;
+                    
+                    filteredTickets = allTickets.filter(ticket => {
+                        // Search filter
+                        if (searchTerm) {
+                            const searchableText = [
+                                ticket.ticketKey || '',
+                                ticket.title || '',
+                                ticket.assignee || '',
+                                ticket.status || '',
+                                ticket.priority || ''
+                            ].join(' ').toLowerCase();
+                            
+                            if (!searchableText.includes(searchTerm)) {
+                                return false;
+                            }
+                        }
+                        
+                        // Status filter
+                        if (selectedStatus && ticket.status !== selectedStatus) {
+                            return false;
+                        }
+                        
+                        // Priority filter
+                        if (selectedPriority && ticket.priority !== selectedPriority) {
+                            return false;
+                        }
+                        
+                        // Assignee filter
+                        if (selectedAssignee && ticket.assignee !== selectedAssignee) {
+                            return false;
+                        }
+                        
+                        return true;
+                    });
+                    
+                    // Update filter count badge
+                    const activeFilterCount = [searchTerm, selectedStatus, selectedPriority, selectedAssignee].filter(f => f).length;
+                    if (activeFilterCount > 0) {
+                        filterCountBadge.textContent = `${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active`;
+                        filterCountBadge.style.display = 'inline-block';
+                    } else {
+                        filterCountBadge.style.display = 'none';
+                    }
+                    
+                    // Update count display
+                    if (filteredTickets.length !== allTickets.length) {
+                        ticketCountSpan.textContent = `Showing ${filteredTickets.length} of ${allTickets.length} tickets (filtered)`;
+                    } else {
+                        ticketCountSpan.textContent = statusFilter === 'all' 
+                            ? `${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved`
+                            : `Showing ${ticketCount} ${statusFilter} bugs`;
+                    }
+                    
+                    // Render filtered results
+                    if (filteredTickets.length > 0) {
+                        tableBody.innerHTML = filteredTickets.map(ticket => `
+                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                <td style="padding: 12px;">
+                                    <a href="${ticket.jiraUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                                        ${this.escapeHtml(ticket.ticketKey)}
+                                    </a>
+                                </td>
+                                <td style="padding: 12px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(ticket.title)}">
+                                    ${this.escapeHtml(ticket.title)}
+                                </td>
+                                <td style="padding: 12px;">
+                                    <span style="
+                                        padding: 4px 10px;
+                                        border-radius: 12px;
+                                        font-size: 0.8rem;
+                                        font-weight: 600;
+                                        background: ${this.getStatusColor(ticket.status)};
+                                        color: white;
+                                    ">${this.escapeHtml(ticket.status)}</span>
+                                </td>
+                                <td style="padding: 12px;">${this.escapeHtml(ticket.priority || 'N/A')}</td>
+                                <td style="padding: 12px;">${this.escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                                <td style="padding: 12px;">
+                                    <span style="
+                                        padding: 4px 10px;
+                                        border-radius: 12px;
+                                        font-size: 0.8rem;
+                                        font-weight: 600;
+                                        background: ${ticket.fixVersions && ticket.fixVersions.length > 0 ? '#8b5cf6' : '#94a3b8'};
+                                        color: white;
+                                    ">${ticket.fixVersions && ticket.fixVersions.length > 0 ? this.escapeHtml(ticket.fixVersions.join(', ')) : 'N/A'}</span>
+                                </td>
+                                <td style="padding: 12px;">${this.formatDate(ticket.createdDate)}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No tickets match the current filters.</td></tr>';
+                    }
+                };
+                
+                // Add event listeners to filters
+                searchInput.addEventListener('input', applyFilters);
+                statusFilterSelect.addEventListener('change', applyFilters);
+                priorityFilterSelect.addEventListener('change', applyFilters);
+                assigneeFilterSelect.addEventListener('change', applyFilters);
+                
+                // Clear filters button
+                clearFiltersBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    statusFilterSelect.value = '';
+                    priorityFilterSelect.value = '';
+                    assigneeFilterSelect.value = '';
+                    applyFilters();
+                });
                 
                 // Close on backdrop click
                 modal.addEventListener('click', (e) => {
