@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CMI Team Bug Dashboard - Alt Support</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -550,6 +551,113 @@
         .timestamp strong {
             color: #94a3b8;
         }
+
+        /* Chart Section */
+        .charts-section {
+            margin-bottom: 40px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-filter label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .chart-filter select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-filter select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-card-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -577,10 +685,6 @@
                     <option value="365">Last Year</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label for="projectFilter">📁 Project:</label>
-                <input type="text" id="projectFilter" placeholder="e.g., EP" style="width: 120px;">
-            </div>
             <button id="refreshBtn" class="refresh-btn">
                 <span>🔄</span> Refresh Data
             </button>
@@ -606,10 +710,13 @@
                 this.contentEl = document.getElementById('content');
                 this.timestampEl = document.getElementById('timestamp');
                 this.daysFilter = document.getElementById('daysFilter');
-                this.projectFilter = document.getElementById('projectFilter');
                 this.refreshBtn = document.getElementById('refreshBtn');
                 
                 this.data = null;
+                
+                // Chart instances
+                this.bugsByTeamChart = null;
+                this.openVsResolvedChart = null;
                 
                 this.init();
             }
@@ -635,11 +742,6 @@
                     const daysBack = this.daysFilter.value;
                     if (daysBack) {
                         params.append('daysBack', daysBack);
-                    }
-                    
-                    const project = this.projectFilter.value.trim();
-                    if (project) {
-                        params.append('project', project);
                     }
                     
                     const url = `/api/tickets/statistics/bugs-by-team${params.toString() ? '?' + params.toString() : ''}`;
@@ -689,7 +791,6 @@
                     this.timestampEl.innerHTML = `
                         <strong>Last Updated:</strong> ${date.toLocaleString()} 
                         ${this.data.filteredByDaysBack ? `| <strong>Showing:</strong> Last ${this.data.filteredByDaysBack} days` : '| <strong>Showing:</strong> All Time'}
-                        ${this.data.filteredByProject ? ` | <strong>Project:</strong> ${this.data.filteredByProject}` : ''}
                     `;
                 }
             }
@@ -728,6 +829,50 @@
                         </div>
                     </div>
 
+                    <!-- Charts Section -->
+                    <section class="charts-section fade-in">
+                        <h2 class="section-title">
+                            <span>📊</span> Bug Analytics
+                        </h2>
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <div class="chart-card-header">
+                                    <div class="chart-title">
+                                        <span>📊</span> Bugs by Team
+                                    </div>
+                                    <div class="chart-filter">
+                                        <label for="chartTypeFilter">View:</label>
+                                        <select id="chartTypeFilter">
+                                            <option value="bar">Bar Chart</option>
+                                            <option value="horizontalBar">Horizontal Bar</option>
+                                            <option value="doughnut">Doughnut</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="bugsByTeamChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <div class="chart-card-header">
+                                    <div class="chart-title">
+                                        <span>🎯</span> Open vs Resolved
+                                    </div>
+                                    <div class="chart-filter">
+                                        <label for="teamChartFilter">Team:</label>
+                                        <select id="teamChartFilter">
+                                            <option value="all">All Teams</option>
+                                            ${teams.map(t => `<option value="${t.component}">${t.team}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="openVsResolvedChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Teams Section -->
                     <section class="teams-section">
                         <h2 class="section-title">
@@ -746,6 +891,274 @@
                         bar.style.width = width + '%';
                     });
                 }, 100);
+
+                // Render charts
+                this.renderCharts();
+                this.setupChartFilters();
+            }
+
+            renderCharts() {
+                this.renderBugsByTeamChart();
+                this.renderOpenVsResolvedChart();
+            }
+
+            renderBugsByTeamChart(chartType = 'bar') {
+                const ctx = document.getElementById('bugsByTeamChart');
+                if (!ctx) return;
+
+                // Destroy existing chart
+                if (this.bugsByTeamChart) {
+                    this.bugsByTeamChart.destroy();
+                }
+
+                const teams = this.data.teams;
+                const labels = teams.map(t => t.component);
+                
+                const chartColors = {
+                    total: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgb(99, 102, 241)' },
+                    open: { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgb(239, 68, 68)' },
+                    resolved: { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgb(16, 185, 129)' }
+                };
+
+                if (chartType === 'doughnut') {
+                    // Doughnut chart showing total bugs per team
+                    this.bugsByTeamChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: teams.map(t => t.totalBugs),
+                                backgroundColor: [
+                                    'rgba(99, 102, 241, 0.8)',
+                                    'rgba(139, 92, 246, 0.8)',
+                                    'rgba(236, 72, 153, 0.8)',
+                                    'rgba(244, 63, 94, 0.8)',
+                                    'rgba(249, 115, 22, 0.8)',
+                                    'rgba(234, 179, 8, 0.8)',
+                                    'rgba(16, 185, 129, 0.8)'
+                                ],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        font: { size: 11, family: 'Plus Jakarta Sans' }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (context) => {
+                                            const team = teams[context.dataIndex];
+                                            return `${context.label}: ${team.totalBugs} bugs (${team.resolutionRate}% resolved)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    // Bar chart (vertical or horizontal)
+                    const isHorizontal = chartType === 'horizontalBar';
+                    
+                    this.bugsByTeamChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Total Bugs',
+                                    data: teams.map(t => t.totalBugs),
+                                    backgroundColor: chartColors.total.bg,
+                                    borderColor: chartColors.total.border,
+                                    borderWidth: 2,
+                                    borderRadius: 6
+                                },
+                                {
+                                    label: 'Open',
+                                    data: teams.map(t => t.openBugs),
+                                    backgroundColor: chartColors.open.bg,
+                                    borderColor: chartColors.open.border,
+                                    borderWidth: 2,
+                                    borderRadius: 6
+                                },
+                                {
+                                    label: 'Resolved',
+                                    data: teams.map(t => t.resolvedBugs),
+                                    backgroundColor: chartColors.resolved.bg,
+                                    borderColor: chartColors.resolved.border,
+                                    borderWidth: 2,
+                                    borderRadius: 6
+                                }
+                            ]
+                        },
+                        options: {
+                            indexAxis: isHorizontal ? 'y' : 'x',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        padding: 15,
+                                        usePointStyle: true,
+                                        font: { size: 12, family: 'Plus Jakarta Sans' }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                    titleFont: { size: 13, weight: 'bold' },
+                                    bodyFont: { size: 12 },
+                                    padding: 12,
+                                    cornerRadius: 8
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: !isHorizontal, color: 'rgba(0,0,0,0.05)' },
+                                    ticks: { font: { size: 11, family: 'Plus Jakarta Sans' } }
+                                },
+                                y: {
+                                    grid: { display: isHorizontal, color: 'rgba(0,0,0,0.05)' },
+                                    ticks: { font: { size: 11, family: 'Plus Jakarta Sans' } },
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+            renderOpenVsResolvedChart(teamFilter = 'all') {
+                const ctx = document.getElementById('openVsResolvedChart');
+                if (!ctx) return;
+
+                // Destroy existing chart
+                if (this.openVsResolvedChart) {
+                    this.openVsResolvedChart.destroy();
+                }
+
+                let openBugs, resolvedBugs;
+
+                if (teamFilter === 'all') {
+                    openBugs = this.data.summary.totalOpenBugs;
+                    resolvedBugs = this.data.summary.totalResolvedBugs;
+                } else {
+                    const team = this.data.teams.find(t => t.component === teamFilter);
+                    if (!team) return;
+                    openBugs = team.openBugs;
+                    resolvedBugs = team.resolvedBugs;
+                }
+
+                const total = openBugs + resolvedBugs;
+                const openPercent = total > 0 ? ((openBugs / total) * 100).toFixed(1) : 0;
+                const resolvedPercent = total > 0 ? ((resolvedBugs / total) * 100).toFixed(1) : 0;
+
+                this.openVsResolvedChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Open Bugs', 'Resolved Bugs'],
+                        datasets: [{
+                            data: [openBugs, resolvedBugs],
+                            backgroundColor: [
+                                'rgba(239, 68, 68, 0.85)',
+                                'rgba(16, 185, 129, 0.85)'
+                            ],
+                            borderColor: ['rgb(239, 68, 68)', 'rgb(16, 185, 129)'],
+                            borderWidth: 3,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '60%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: { size: 12, family: 'Plus Jakarta Sans', weight: '600' },
+                                    generateLabels: (chart) => {
+                                        const data = chart.data;
+                                        return data.labels.map((label, i) => ({
+                                            text: `${label}: ${data.datasets[0].data[i]} (${i === 0 ? openPercent : resolvedPercent}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            strokeStyle: data.datasets[0].borderColor[i],
+                                            lineWidth: 2,
+                                            pointStyle: 'circle',
+                                            hidden: false,
+                                            index: i
+                                        }));
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: (context) => {
+                                        const value = context.raw;
+                                        const percent = context.dataIndex === 0 ? openPercent : resolvedPercent;
+                                        return `${value} bugs (${percent}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'centerText',
+                        beforeDraw: (chart) => {
+                            const ctx = chart.ctx;
+                            const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                            const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+                            ctx.save();
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            // Total number
+                            ctx.font = 'bold 28px Plus Jakarta Sans';
+                            ctx.fillStyle = '#1e293b';
+                            ctx.fillText(total, centerX, centerY - 10);
+
+                            // Label
+                            ctx.font = '500 12px Plus Jakarta Sans';
+                            ctx.fillStyle = '#64748b';
+                            ctx.fillText('Total Bugs', centerX, centerY + 15);
+
+                            ctx.restore();
+                        }
+                    }]
+                });
+            }
+
+            setupChartFilters() {
+                const chartTypeFilter = document.getElementById('chartTypeFilter');
+                const teamChartFilter = document.getElementById('teamChartFilter');
+
+                if (chartTypeFilter) {
+                    chartTypeFilter.addEventListener('change', (e) => {
+                        this.renderBugsByTeamChart(e.target.value);
+                    });
+                }
+
+                if (teamChartFilter) {
+                    teamChartFilter.addEventListener('change', (e) => {
+                        this.renderOpenVsResolvedChart(e.target.value);
+                    });
+                }
             }
 
             renderTeamCard(team, index) {
@@ -794,11 +1207,6 @@
                     const daysBack = this.daysFilter.value;
                     if (daysBack) {
                         params.append('daysBack', daysBack);
-                    }
-                    
-                    const project = this.projectFilter.value.trim();
-                    if (project) {
-                        params.append('project', project);
                     }
                     
                     params.append('pageSize', '100');
