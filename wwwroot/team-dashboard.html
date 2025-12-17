@@ -237,6 +237,31 @@
         .summary-card.resolved .summary-icon { background: rgba(16, 185, 129, 0.3); }
         .summary-card.rate .summary-icon { background: rgba(245, 158, 11, 0.3); }
 
+        .summary-card.clickable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .summary-card.clickable:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        .summary-card.clickable:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .click-hint {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .summary-card.clickable:hover .click-hint {
+            opacity: 1;
+        }
+
         .summary-value {
             font-size: 2.8rem;
             font-weight: 800;
@@ -372,6 +397,19 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+        }
+
+        .stat-clickable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .stat-clickable:hover {
+            transform: scale(1.1);
+        }
+
+        .stat-clickable:active {
+            transform: scale(0.95);
         }
 
         /* Progress Bar */
@@ -807,20 +845,23 @@
                 this.contentEl.innerHTML = `
                     <!-- Summary Cards -->
                     <div class="summary-grid fade-in">
-                        <div class="summary-card total">
+                        <div class="summary-card total clickable" onclick="window.dashboard.viewBugsByStatus('all')">
                             <div class="summary-icon">🐛</div>
                             <div class="summary-value">${this.formatNumber(summary.totalBugsAcrossAllTeams)}</div>
                             <div class="summary-label">Total Bugs</div>
+                            <div class="click-hint">Click to view</div>
                         </div>
-                        <div class="summary-card open">
+                        <div class="summary-card open clickable" onclick="window.dashboard.viewBugsByStatus('open')">
                             <div class="summary-icon">🔴</div>
                             <div class="summary-value">${this.formatNumber(summary.totalOpenBugs)}</div>
                             <div class="summary-label">Open Bugs</div>
+                            <div class="click-hint">Click to view</div>
                         </div>
-                        <div class="summary-card resolved">
+                        <div class="summary-card resolved clickable" onclick="window.dashboard.viewBugsByStatus('resolved')">
                             <div class="summary-icon">✅</div>
                             <div class="summary-value">${this.formatNumber(summary.totalResolvedBugs)}</div>
                             <div class="summary-label">Resolved Bugs</div>
+                            <div class="click-hint">Click to view</div>
                         </div>
                         <div class="summary-card rate">
                             <div class="summary-icon">📈</div>
@@ -1163,22 +1204,22 @@
 
             renderTeamCard(team, index) {
                 return `
-                    <div class="team-card" onclick="window.dashboard.viewTeamDetails('${team.component}')">
+                    <div class="team-card">
                         <div class="team-card-header">
                             <div class="team-name">${this.escapeHtml(team.team)}</div>
                             <div class="team-component">Component: ${this.escapeHtml(team.component)}</div>
                         </div>
                         <div class="team-card-body">
                             <div class="bug-stats">
-                                <div class="stat-item total">
+                                <div class="stat-item total stat-clickable" onclick="event.stopPropagation(); window.dashboard.viewTeamDetails('${team.component}', 'all')" title="Click to view all ${team.totalBugs} bugs">
                                     <div class="stat-value">${team.totalBugs}</div>
                                     <div class="stat-label">Total</div>
                                 </div>
-                                <div class="stat-item open">
+                                <div class="stat-item open stat-clickable" onclick="event.stopPropagation(); window.dashboard.viewTeamDetails('${team.component}', 'open')" title="Click to view ${team.openBugs} open bugs">
                                     <div class="stat-value">${team.openBugs}</div>
                                     <div class="stat-label">Open</div>
                                 </div>
-                                <div class="stat-item resolved">
+                                <div class="stat-item resolved stat-clickable" onclick="event.stopPropagation(); window.dashboard.viewTeamDetails('${team.component}', 'resolved')" title="Click to view ${team.resolvedBugs} resolved bugs">
                                     <div class="stat-value">${team.resolvedBugs}</div>
                                     <div class="stat-label">Resolved</div>
                                 </div>
@@ -1192,15 +1233,15 @@
                                     <div class="progress-fill" data-width="${team.resolutionRate}" style="width: 0%"></div>
                                 </div>
                             </div>
-                            <button class="view-details-btn">
-                                <span>📋</span> View Bug Details
+                            <button class="view-details-btn" onclick="window.dashboard.viewTeamDetails('${team.component}', 'all')">
+                                <span>📋</span> View All Bugs
                             </button>
                         </div>
                     </div>
                 `;
             }
 
-            async viewTeamDetails(component) {
+            async viewTeamDetails(component, statusFilter = 'all') {
                 try {
                     const params = new URLSearchParams();
                     
@@ -1209,7 +1250,7 @@
                         params.append('daysBack', daysBack);
                     }
                     
-                    params.append('pageSize', '100');
+                    params.append('pageSize', '200');
                     
                     const url = `/api/tickets/statistics/bugs-by-team/${encodeURIComponent(component)}?${params.toString()}`;
                     
@@ -1217,8 +1258,25 @@
                     const response = await fetch(url);
                     const data = await response.json();
                     
+                    // Filter tickets based on status
+                    if (statusFilter !== 'all' && data.tickets) {
+                        if (statusFilter === 'open') {
+                            data.tickets = data.tickets.filter(t => 
+                                t.status !== 'Done' && t.status !== 'Closed' && t.status !== 'Resolved'
+                            );
+                            data.statusFilter = 'open';
+                            data.filteredCount = data.tickets.length;
+                        } else if (statusFilter === 'resolved') {
+                            data.tickets = data.tickets.filter(t => 
+                                t.status === 'Done' || t.status === 'Closed' || t.status === 'Resolved'
+                            );
+                            data.statusFilter = 'resolved';
+                            data.filteredCount = data.tickets.length;
+                        }
+                    }
+                    
                     // Show bug list modal
-                    this.showBugListModal(data);
+                    this.showBugListModal(data, statusFilter);
                     
                 } catch (error) {
                     console.error('Error loading team details:', error);
@@ -1226,7 +1284,238 @@
                 }
             }
 
-            showBugListModal(data) {
+            async viewBugsByStatus(statusFilter) {
+                try {
+                    // Collect all tickets from all teams
+                    const allTickets = [];
+                    const teams = this.data.teams;
+                    const daysBack = this.daysFilter.value;
+                    
+                    // Show loading indicator
+                    const loadingModal = document.createElement('div');
+                    loadingModal.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: rgba(0,0,0,0.8);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 1000;
+                    `;
+                    loadingModal.innerHTML = `
+                        <div style="text-align: center; color: white;">
+                            <div class="loading-spinner" style="width: 50px; height: 50px; border-width: 4px; margin: 0 auto 20px;"></div>
+                            <div style="font-size: 1.2rem;">Loading ${statusFilter === 'all' ? 'all' : statusFilter} bugs...</div>
+                        </div>
+                    `;
+                    document.body.appendChild(loadingModal);
+
+                    // Fetch bugs from all teams
+                    for (const team of teams) {
+                        const params = new URLSearchParams();
+                        if (daysBack) {
+                            params.append('daysBack', daysBack);
+                        }
+                        params.append('pageSize', '200');
+                        
+                        const url = `/api/tickets/statistics/bugs-by-team/${encodeURIComponent(team.component)}?${params.toString()}`;
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        
+                        if (data.tickets) {
+                            data.tickets.forEach(ticket => {
+                                ticket.teamName = team.team;
+                                ticket.component = team.component;
+                                allTickets.push(ticket);
+                            });
+                        }
+                    }
+
+                    // Remove loading modal
+                    loadingModal.remove();
+
+                    // Filter tickets based on status
+                    let filteredTickets = allTickets;
+                    let modalTitle = 'All Bugs';
+                    let modalIcon = '🐛';
+                    
+                    if (statusFilter === 'open') {
+                        filteredTickets = allTickets.filter(t => 
+                            t.status !== 'Done' && t.status !== 'Closed' && t.status !== 'Resolved'
+                        );
+                        modalTitle = 'Open Bugs';
+                        modalIcon = '🔴';
+                    } else if (statusFilter === 'resolved') {
+                        filteredTickets = allTickets.filter(t => 
+                            t.status === 'Done' || t.status === 'Closed' || t.status === 'Resolved'
+                        );
+                        modalTitle = 'Resolved Bugs';
+                        modalIcon = '✅';
+                    }
+
+                    // Show the filtered bugs modal
+                    this.showFilteredBugsModal(filteredTickets, modalTitle, modalIcon, statusFilter);
+                    
+                } catch (error) {
+                    console.error('Error loading bugs by status:', error);
+                    alert('Failed to load bugs: ' + error.message);
+                }
+            }
+
+            showFilteredBugsModal(tickets, title, icon, statusFilter) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+
+                const headerBg = statusFilter === 'open' 
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : statusFilter === 'resolved'
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)';
+
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 20px;
+                        max-width: 1400px;
+                        width: 100%;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    ">
+                        <div style="
+                            padding: 24px;
+                            background: ${headerBg};
+                            color: white;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.5rem;">${icon} ${title}</h2>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                                    ${tickets.length} tickets across all teams
+                                    ${this.daysFilter.value ? ` | Last ${this.daysFilter.value} days` : ' | All Time'}
+                                </p>
+                            </div>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
+                                background: rgba(255,255,255,0.2);
+                                border: none;
+                                color: white;
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.5rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        <div style="overflow-y: auto; flex: 1; padding: 20px;">
+                            ${tickets.length > 0 ? `
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #f1f5f9; position: sticky; top: 0;">
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Ticket</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Title</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Team</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Status</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Priority</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Assignee</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Fix Version</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tickets.map(ticket => `
+                                            <tr style="border-bottom: 1px solid #e2e8f0;">
+                                                <td style="padding: 12px;">
+                                                    <a href="${ticket.jiraUrl}" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                                                        ${this.escapeHtml(ticket.ticketKey)}
+                                                    </a>
+                                                </td>
+                                                <td style="padding: 12px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(ticket.title)}">
+                                                    ${this.escapeHtml(ticket.title)}
+                                                </td>
+                                                <td style="padding: 12px;">
+                                                    <span style="
+                                                        padding: 4px 10px;
+                                                        border-radius: 12px;
+                                                        font-size: 0.8rem;
+                                                        font-weight: 600;
+                                                        background: rgba(99, 102, 241, 0.15);
+                                                        color: #6366f1;
+                                                    ">${this.escapeHtml(ticket.component)}</span>
+                                                </td>
+                                                <td style="padding: 12px;">
+                                                    <span style="
+                                                        padding: 4px 10px;
+                                                        border-radius: 12px;
+                                                        font-size: 0.8rem;
+                                                        font-weight: 600;
+                                                        background: ${this.getStatusColor(ticket.status)};
+                                                        color: white;
+                                                    ">${this.escapeHtml(ticket.status)}</span>
+                                                </td>
+                                                <td style="padding: 12px;">${this.escapeHtml(ticket.priority || 'N/A')}</td>
+                                                <td style="padding: 12px;">${this.escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                                                <td style="padding: 12px;">
+                                                    <span style="
+                                                        padding: 4px 10px;
+                                                        border-radius: 12px;
+                                                        font-size: 0.8rem;
+                                                        font-weight: 600;
+                                                        background: ${ticket.fixVersions && ticket.fixVersions.length > 0 ? '#8b5cf6' : '#94a3b8'};
+                                                        color: white;
+                                                    ">${ticket.fixVersions && ticket.fixVersions.length > 0 ? this.escapeHtml(ticket.fixVersions.join(', ')) : 'N/A'}</span>
+                                                </td>
+                                                <td style="padding: 12px;">${this.formatDate(ticket.createdDate)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            ` : '<p style="text-align: center; color: #666; padding: 40px;">No bugs found.</p>'}
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                
+                // Close on backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Close on Escape key
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            }
+
+            showBugListModal(data, statusFilter = 'all') {
                 // Create modal overlay
                 const modal = document.createElement('div');
                 modal.style.cssText = `
@@ -1244,6 +1533,25 @@
                     animation: fadeIn 0.3s ease;
                 `;
 
+                // Determine header style based on filter
+                let headerBg, headerIcon, headerTitle, ticketCount;
+                if (statusFilter === 'open') {
+                    headerBg = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                    headerIcon = '🔴';
+                    headerTitle = `${data.team} - Open Bugs`;
+                    ticketCount = data.tickets ? data.tickets.length : 0;
+                } else if (statusFilter === 'resolved') {
+                    headerBg = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                    headerIcon = '✅';
+                    headerTitle = `${data.team} - Resolved Bugs`;
+                    ticketCount = data.tickets ? data.tickets.length : 0;
+                } else {
+                    headerBg = 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)';
+                    headerIcon = '🐛';
+                    headerTitle = data.team;
+                    ticketCount = data.totalBugs;
+                }
+
                 modal.innerHTML = `
                     <div style="
                         background: white;
@@ -1257,16 +1565,19 @@
                     ">
                         <div style="
                             padding: 24px;
-                            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                            background: ${headerBg};
                             color: white;
                             display: flex;
                             justify-content: space-between;
                             align-items: center;
                         ">
                             <div>
-                                <h2 style="margin: 0; font-size: 1.5rem;">${this.escapeHtml(data.team)}</h2>
+                                <h2 style="margin: 0; font-size: 1.5rem;">${headerIcon} ${this.escapeHtml(headerTitle)}</h2>
                                 <p style="margin: 5px 0 0 0; opacity: 0.9;">
-                                    ${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved
+                                    ${statusFilter === 'all' 
+                                        ? `${data.totalBugs} Total | ${data.openBugs} Open | ${data.resolvedBugs} Resolved`
+                                        : `Showing ${ticketCount} ${statusFilter} bugs`
+                                    }
                                 </p>
                             </div>
                             <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
