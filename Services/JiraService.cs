@@ -101,7 +101,8 @@ namespace Alt_Support.Services
                     fields = new[] { 
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
-                        "created", "updated", "resolutiondate", "resolution", "customfield_10144"
+                        "created", "updated", "resolutiondate", "resolution", "customfield_10144",
+                        "fixVersions"
                     }
                 };
 
@@ -189,7 +190,8 @@ namespace Alt_Support.Services
                     fields = new[] { 
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
-                        "created", "updated", "resolutiondate", "resolution", "customfield_10144"
+                        "created", "updated", "resolutiondate", "resolution", "customfield_10144",
+                        "fixVersions"
                     }
                 };
 
