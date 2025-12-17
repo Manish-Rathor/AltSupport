@@ -323,6 +323,7 @@ namespace Alt_Support.Controllers
                         t.UpdatedDate,
                         t.ResolvedDate,
                         t.Resolution,
+                        t.FixVersions,
                         JiraUrl = $"https://navex.atlassian.net/browse/{t.TicketKey}"
                     })
                 };

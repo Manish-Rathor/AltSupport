@@ -885,6 +885,7 @@
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Status</th>
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Priority</th>
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Assignee</th>
+                                            <th style="padding: 12px; text-align: left; font-weight: 600;">Fix Version</th>
                                             <th style="padding: 12px; text-align: left; font-weight: 600;">Created</th>
                                         </tr>
                                     </thead>
@@ -911,6 +912,16 @@
                                                 </td>
                                                 <td style="padding: 12px;">${this.escapeHtml(ticket.priority || 'N/A')}</td>
                                                 <td style="padding: 12px;">${this.escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                                                <td style="padding: 12px;">
+                                                    <span style="
+                                                        padding: 4px 10px;
+                                                        border-radius: 12px;
+                                                        font-size: 0.8rem;
+                                                        font-weight: 600;
+                                                        background: ${ticket.fixVersions && ticket.fixVersions.length > 0 ? '#8b5cf6' : '#94a3b8'};
+                                                        color: white;
+                                                    ">${ticket.fixVersions && ticket.fixVersions.length > 0 ? this.escapeHtml(ticket.fixVersions.join(', ')) : 'N/A'}</span>
+                                                </td>
                                                 <td style="padding: 12px;">${this.formatDate(ticket.createdDate)}</td>
                                             </tr>
                                         `).join('')}
