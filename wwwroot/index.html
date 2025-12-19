@@ -760,11 +760,11 @@
 
                     ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
 
-                    ${this.renderTestCases(ticket.testCases)}
-
                     ${this.renderDescription(ticket.description)}
-                `;
 
+                    ${ticket.key && ticket.key.startsWith('PRODSUP-') ? '' : this.renderTestCases(ticket.testCases)}
+                `;
+                
                 this.ticketContent.innerHTML = content;
                 
                 this.hideLoading();
@@ -952,19 +952,20 @@
 
             renderTestCases(testCases) {
                 if (!testCases || testCases.trim() === '') {
-                    return `
-                        <div class="pr-links" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 5px solid #6c757d;">
-                            <h3>🧪 Test Cases</h3>
-                            <p style="color: #666; font-style: italic; margin: 0;">No test cases found for this ticket</p>
-                        </div>
-                    `;
+                    return '';
                 }
 
-                // Format test cases to look more like Jira
-                let formattedTestCases = this.escapeHtml(testCases);
+                // Format test cases
+                let formattedTestCases = testCases;
                 
-                // FIRST: Convert all newlines to <br> tags to preserve line breaks
-                formattedTestCases = formattedTestCases.replace(/\n/g, '<br>');
+                // Convert line breaks to <br> tags
+                formattedTestCases = formattedTestCases.replace(/\r?\n/g, '<br>');
+                
+                // Convert markdown-style links [text](url) to HTML links
+                // Use a more careful regex that matches the last closing parenthesis
+                formattedTestCases = formattedTestCases.replace(/\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g, function(match, text, url) {
+                    return `<a href="${url}" target="_blank" style="color: #0052cc; text-decoration: none; font-weight: 500; border-bottom: 1px solid #0052cc;" onmouseover="this.style.color='#0065ff'; this.style.borderBottom='2px solid #0065ff'" onmouseout="this.style.color='#0052cc'; this.style.borderBottom='1px solid #0052cc'">${text}</a>`;
+                });
                 
                 // Make "Test Cases :" or "Test Cases -" bold
                 formattedTestCases = formattedTestCases.replace(/Test Cases\s*[:-]/gi, '<strong style="font-size: 1.1em; color: #172b4d;">Test Cases:</strong>');
@@ -1047,8 +1048,11 @@
                 // Convert line breaks to <br> tags
                 formatted = formatted.replace(/\r?\n/g, '<br>');
                 
-                // Make URLs clickable (only enhancement)
-                formatted = formatted.replace(/(https?:\/\/[^\s<>"']+)/gi, '<a href="$1" target="_blank" style="color: #0052cc; text-decoration: underline;">$1</a>');
+                // Convert markdown-style links [text](url) to HTML links
+                // Use a more careful regex that matches the last closing parenthesis
+                formatted = formatted.replace(/\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g, function(match, text, url) {
+                    return `<a href="${url}" target="_blank" style="color: #0052cc; text-decoration: none; font-weight: 500; border-bottom: 1px solid #0052cc;" onmouseover="this.style.color='#0065ff'; this.style.borderBottom='2px solid #0065ff'" onmouseout="this.style.color='#0052cc'; this.style.borderBottom='1px solid #0052cc'">${text}</a>`;
+                });
                 
                 return formatted;
             }
