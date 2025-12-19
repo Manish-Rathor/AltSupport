@@ -40,7 +40,7 @@ namespace Alt_Support.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"/rest/api/3/issue/{ticketKey}?expand=changelog&fields=*all");
+                var response = await _httpClient.GetAsync($"/rest/api/3/issue/{ticketKey}?expand=changelog,renderedFields&fields=*all");
                 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -49,9 +49,6 @@ namespace Alt_Support.Services
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                
-                // Log raw JSON for debugging (first 2000 chars)
-                _logger.LogInformation($"Raw Jira response for {ticketKey}: {content.Substring(0, Math.Min(2000, content.Length))}...");
                 
                 var options = new JsonSerializerOptions 
                 { 
@@ -101,7 +98,9 @@ namespace Alt_Support.Services
                     fields = new[] { 
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
-                        "created", "updated", "resolutiondate", "resolution", "customfield_10144"
+                        "created", "updated", "resolutiondate", "resolution", "customfield_10144",
+                        "customfield_10146", "customfield_10020", "customfield_10074", "customfield_10252",
+                        "fixVersions", "customfield_10304"
                     }
                 };
 
@@ -189,7 +188,9 @@ namespace Alt_Support.Services
                     fields = new[] { 
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
-                        "created", "updated", "resolutiondate", "resolution", "customfield_10144"
+                        "created", "updated", "resolutiondate", "resolution", "customfield_10144",
+                        "customfield_10146", "customfield_10020", "customfield_10074", "customfield_10252",
+                        "fixVersions", "customfield_10304"
                     }
                 };
 
@@ -356,8 +357,8 @@ namespace Alt_Support.Services
             // Extract sprint information
             ticket.Sprint = ExtractSprintName(jiraIssue.Fields?.Sprint);
             
-            // Extract test cases from description
-            ticket.TestCases = ExtractTestCasesFromDescription(jiraIssue.Fields?.Description);
+            // Extract test cases from custom field 10146
+            ticket.TestCases = ExtractFormattedTextFromCustomField10146(jiraIssue.Fields?.TestCasesField);
             
             // Extract additional custom fields
             ticket.EPIMPriority = jiraIssue.Fields?.EPIMPriority?.Value ?? "";
@@ -494,6 +495,24 @@ namespace Alt_Support.Services
                 foreach (var contentItem in contentBlock.Content)
                 {
                     _logger.LogInformation($"Content item - Type: {contentItem.Type}, HasMarks: {contentItem.Marks != null}, HasText: {!string.IsNullOrEmpty(contentItem.Text)}");
+                    
+                    // Handle inlineCard type (embedded links)
+                    if (contentItem.Type == "inlineCard" && contentItem.Attrs?.Url != null)
+                    {
+                        var url = contentItem.Attrs.Url;
+                        _logger.LogInformation($"Found inlineCard URL in custom field: {url}");
+                        
+                        // Check if it's a GitHub PR link
+                        if (url.Contains("github.com") && (url.Contains("/pull/") || url.Contains("/pr/")))
+                        {
+                            if (!prLinks.Contains(url))
+                            {
+                                prLinks.Add(url);
+                                _logger.LogInformation($"Added PR link from inlineCard in custom field: {url}");
+                            }
+                        }
+                        continue;
+                    }
                     
                     if (contentItem.Marks == null) continue;
 
@@ -640,30 +659,17 @@ namespace Alt_Support.Services
             return sprints.First().Name;
         }
 
-        private string ExtractTestCasesFromDescription(DescriptionField? description)
+        private string ExtractFormattedTextFromCustomField10146(CustomField10146? testCasesField)
         {
-            if (description?.Content == null)
+            if (testCasesField?.Content == null)
+            {
                 return "";
-            
-            // Extract text with formatting preserved (line breaks, etc.)
-            var formattedText = ExtractFormattedTextFromDescription(description);
-            
-            // Look for "Test Cases :" or "Test Case" pattern
-            var testCaseIndex = formattedText.IndexOf("Test Cases", StringComparison.OrdinalIgnoreCase);
-            if (testCaseIndex == -1)
-            {
-                testCaseIndex = formattedText.IndexOf("Test Case", StringComparison.OrdinalIgnoreCase);
             }
             
-            if (testCaseIndex >= 0)
-            {
-                // Extract everything after "Test Cases" or "Test Case"
-                var testCasesText = formattedText.Substring(testCaseIndex).Trim();
-                _logger.LogInformation($"Extracted test cases: {testCasesText.Substring(0, Math.Min(200, testCasesText.Length))}...");
-                return testCasesText;
-            }
+            var textBuilder = new StringBuilder();
+            ExtractFormattedTextFromContent(testCasesField.Content, textBuilder, 0);
             
-            return "";
+            return textBuilder.ToString().Trim();
         }
         
         private string ExtractFormattedTextFromDescription(DescriptionField description)
@@ -697,7 +703,43 @@ namespace Alt_Support.Services
                         // Add the text content
                         if (!string.IsNullOrEmpty(item.Text))
                         {
-                            textBuilder.Append(item.Text);
+                            // Check if this text has link marks
+                            if (item.Marks != null && item.Marks.Count > 0)
+                            {
+                                foreach (var mark in item.Marks)
+                                {
+                                    if (mark.Type == "link" && mark.Attrs?.Href != null)
+                                    {
+                                        // Format as [text](url) for frontend to convert to clickable link
+                                        textBuilder.Append($"[{item.Text}]({mark.Attrs.Href})");
+                                        break; // Only process first link
+                                    }
+                                }
+                                // If no link mark was found, just append the text
+                                if (!item.Marks.Any(m => m.Type == "link"))
+                                {
+                                    textBuilder.Append(item.Text);
+                                }
+                            }
+                            else
+                            {
+                                textBuilder.Append(item.Text);
+                            }
+                        }
+                        else
+                        {
+                            // Handle case where text is empty but there might be a link mark
+                            if (item.Marks != null && item.Marks.Count > 0)
+                            {
+                                foreach (var mark in item.Marks)
+                                {
+                                    if (mark.Type == "link" && mark.Attrs?.Href != null)
+                                    {
+                                        textBuilder.Append($"[link]({mark.Attrs.Href})");
+                                        break;
+                                    }
+                                }
+                            }
                         }
                         break;
                         
@@ -756,6 +798,51 @@ namespace Alt_Support.Services
                     case "emoji":
                         // Skip emojis or add a placeholder
                         textBuilder.Append(" ");
+                        break;
+                        
+                    case "inlinecard":
+                        // Handle inline card links (commonly used for embedded URLs)
+                        if (item.Attrs?.Url != null)
+                        {
+                            var url = item.Attrs.Url;
+                            // Extract a meaningful reference text based on URL type
+                            string linkText = "Link";
+                            
+                            if (url.Contains("atlassian.net/browse/"))
+                            {
+                                // Extract ticket key (e.g., "PRODSUP-12464")
+                                linkText = url.Substring(url.LastIndexOf('/') + 1);
+                            }
+                            else if (url.Contains("github.com") && url.Contains("/pull/"))
+                            {
+                                // Extract PR number and format as "PR #8086"
+                                var prNumber = url.Substring(url.LastIndexOf('/') + 1);
+                                linkText = $"PR #{prNumber}";
+                            }
+                            else if (url.Contains("github.com") && url.Contains("/pr/"))
+                            {
+                                // Extract PR number and format as "PR #8086"
+                                var prNumber = url.Substring(url.LastIndexOf('/') + 1);
+                                linkText = $"PR #{prNumber}";
+                            }
+                            else if (url.Contains("figma.com"))
+                            {
+                                // For Figma links
+                                linkText = "Figma";
+                            }
+                            else if (url.Contains("confluence"))
+                            {
+                                // For Confluence links
+                                linkText = "Confluence";
+                            }
+                            else if (url.Contains("sharepoint") || url.Contains(".sharepoint.com"))
+                            {
+                                // For SharePoint links
+                                linkText = "SharePoint";
+                            }
+                            
+                            textBuilder.Append($"[{linkText}]({url})");
+                        }
                         break;
                         
                     default:
