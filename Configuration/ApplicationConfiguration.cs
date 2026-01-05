@@ -30,11 +30,18 @@ namespace Alt_Support.Configuration
         public string UserAgent { get; set; } = "Alt-Support-App";
     }
 
+    public class TeamsConfiguration
+    {
+        public List<string> CMITeamComponents { get; set; } = new List<string>();
+        public string TeamNamePrefix { get; set; } = "Team CMI";
+    }
+
     public class ApplicationConfiguration
     {
         public JiraConfiguration Jira { get; set; } = new JiraConfiguration();
         public GitHubConfiguration GitHub { get; set; } = new GitHubConfiguration();
         public SimilarityConfiguration Similarity { get; set; } = new SimilarityConfiguration();
+        public TeamsConfiguration Teams { get; set; } = new TeamsConfiguration();
         public string DatabaseConnectionString { get; set; } = string.Empty;
         public bool EnableHistoricalDataSync { get; set; } = true;
         public int HistoricalDataSyncIntervalHours { get; set; } = 24;

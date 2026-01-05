@@ -42,7 +42,9 @@ namespace Alt_Support.Models
         [JsonPropertyName("customfield_10020")]
         public List<SprintInfo>? Sprint { get; set; }
         [JsonPropertyName("customfield_10145")]
-        public CustomField10145? TestCasesField { get; set; }
+        public CustomField10145? DeveloperNotes { get; set; }
+        [JsonPropertyName("customfield_10146")]
+        public CustomField10146? TestCasesField { get; set; }
         [JsonPropertyName("customfield_10074")]
         public CustomFieldOption? EPIMPriority { get; set; }
         [JsonPropertyName("customfield_10252")]
@@ -67,6 +69,12 @@ namespace Alt_Support.Models
         public List<ContentItem>? Content { get; set; }
         public string? Text { get; set; }
         public List<Mark>? Marks { get; set; }
+        public ContentAttrs? Attrs { get; set; }
+    }
+
+    public class ContentAttrs
+    {
+        public string? Url { get; set; }
     }
 
     public class Mark
@@ -158,8 +166,21 @@ namespace Alt_Support.Models
 
     public class CustomField10145
     {
+        [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;
+        [JsonPropertyName("version")]
         public int Version { get; set; }
+        [JsonPropertyName("content")]
+        public List<ContentItem>? Content { get; set; }
+    }
+
+    public class CustomField10146
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+        [JsonPropertyName("version")]
+        public int Version { get; set; }
+        [JsonPropertyName("content")]
         public List<ContentItem>? Content { get; set; }
     }
 
