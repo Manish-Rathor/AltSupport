@@ -845,7 +845,7 @@ namespace Alt_Support.Controllers
             try
             {
                 const string componentName = "EthicsPoint";
-                const string ticketType = "SusEng Work";
+                const string ticketType = "SusEng Bug";
                 const string teamName = "SusEng Kaveri";
                
                 _logger.LogInformation($"Fetching {teamName} (EthicsPoint) statistics");
@@ -944,7 +944,7 @@ namespace Alt_Support.Controllers
             try
             {
                 const string componentName = "EthicsPoint";
-                const string ticketType = "SusEng Work";
+                const string ticketType = "SusEng Bug";
  
                 // Build JQL query for SusEng Work tickets
                 var jqlParts = new List<string> { $"type = \"{ticketType}\"", $"component = \"{componentName}\"" };
