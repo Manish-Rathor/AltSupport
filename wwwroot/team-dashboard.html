@@ -140,6 +140,97 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
+        .filter-group select option {
+            background: rgba(30, 41, 59, 0.98);
+            color: #e2e8f0;
+            padding: 8px;
+        }
+
+        .filter-group select option:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        #customDateRange {
+            gap: 8px;
+            min-width: max-content;
+            flex-wrap: nowrap;
+        }
+
+        #customDateRange[style*="display: block"],
+        #customDateRange[style*="display: inline-flex"] {
+            display: inline-flex !important;
+        }
+
+        #customDateRange label {
+            margin: 0;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        #customDateRange input[type="date"] {
+            width: 130px;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+        }
+
+        #customDateRange .refresh-btn {
+            padding: 10px 16px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: auto;
+            font-size: 0.85rem;
+        }
+
+        input[type="date"] {
+            padding: 10px 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #f8fafc;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color-scheme: dark;
+        }
+
+        input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            color: #ffffff;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(1) brightness(2);
+            opacity: 1;
+        }
+        
+        input[type="date"]:hover::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(2.5);
+        }
+
+        input[type="date"]::-webkit-datetime-edit {
+            color: #f8fafc;
+        }
+
+        input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+            color: #f8fafc;
+        }
+
+        input[type="date"]::-webkit-datetime-edit-text {
+            color: #94a3b8;
+        }
+
+        input[type="date"]::-webkit-datetime-edit-month-field,
+        input[type="date"]::-webkit-datetime-edit-day-field,
+        input[type="date"]::-webkit-datetime-edit-year-field {
+            color: #f8fafc;
+        }
+
         .refresh-btn {
             padding: 12px 28px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -723,7 +814,17 @@
                     <option value="90">Last 90 Days</option>
                     <option value="180">Last 6 Months</option>
                     <option value="365">Last Year</option>
+                    <option value="custom">Custom Date Range</option>
                 </select>
+            </div>
+            <div class="filter-group" id="customDateRange" style="display: none;">
+                <label for="startDate">From:</label>
+                <input type="date" id="startDate">
+                <label for="endDate">To:</label>
+                <input type="date" id="endDate">
+                <button id="applyDateBtn" class="refresh-btn">
+                    <span>✓</span> Apply
+                </button>
             </div>
             <button id="refreshBtn" class="refresh-btn">
                 <span>🔄</span> Refresh Data
@@ -751,6 +852,10 @@
                 this.timestampEl = document.getElementById('timestamp');
                 this.daysFilter = document.getElementById('daysFilter');
                 this.refreshBtn = document.getElementById('refreshBtn');
+                this.customDateRange = document.getElementById('customDateRange');
+                this.startDateInput = document.getElementById('startDate');
+                this.endDateInput = document.getElementById('endDate');
+                this.applyDateBtn = document.getElementById('applyDateBtn');
                 
                 this.data = null;
                 
@@ -763,7 +868,21 @@
 
             init() {
                 this.refreshBtn.addEventListener('click', () => this.loadData());
-                this.daysFilter.addEventListener('change', () => this.loadData());
+                this.daysFilter.addEventListener('change', () => {
+                    if (this.daysFilter.value === 'custom') {
+                        this.customDateRange.style.display = 'inline-flex';
+                        // Set default dates (last 30 days to today)
+                        const endDate = new Date();
+                        const startDate = new Date();
+                        startDate.setDate(startDate.getDate() - 30);
+                        this.endDateInput.value = endDate.toISOString().split('T')[0];
+                        this.startDateInput.value = startDate.toISOString().split('T')[0];
+                    } else {
+                        this.customDateRange.style.display = 'none';
+                        this.loadData();
+                    }
+                });
+                this.applyDateBtn.addEventListener('click', () => this.loadData());
                 
                 // Load data on page load
                 this.loadData();
@@ -780,7 +899,13 @@
                     const params = new URLSearchParams();
                     
                     const daysBack = this.daysFilter.value;
-                    if (daysBack) {
+                    if (daysBack === 'custom') {
+                        // Use custom date range
+                        if (this.startDateInput.value && this.endDateInput.value) {
+                            params.append('startDate', this.startDateInput.value);
+                            params.append('endDate', this.endDateInput.value);
+                        }
+                    } else if (daysBack) {
                         params.append('daysBack', daysBack);
                     }
                     
@@ -828,11 +953,28 @@
             updateTimestamp() {
                 if (this.data && this.data.generatedAt) {
                     const date = new Date(this.data.generatedAt);
+                    let showingText = '| <strong>Showing:</strong> All Time';
+                    
+                    if (this.daysFilter.value === 'custom' && this.startDateInput.value && this.endDateInput.value) {
+                        showingText = `| <strong>Showing:</strong> ${this.startDateInput.value} to ${this.endDateInput.value}`;
+                    } else if (this.data.filteredByDaysBack) {
+                        showingText = `| <strong>Showing:</strong> Last ${this.data.filteredByDaysBack} days`;
+                    }
+                    
                     this.timestampEl.innerHTML = `
                         <strong>Last Updated:</strong> ${date.toLocaleString()} 
-                        ${this.data.filteredByDaysBack ? `| <strong>Showing:</strong> Last ${this.data.filteredByDaysBack} days` : '| <strong>Showing:</strong> All Time'}
+                        ${showingText}
                     `;
                 }
+            }
+
+            getTimeRangeText() {
+                if (this.daysFilter.value === 'custom' && this.startDateInput.value && this.endDateInput.value) {
+                    return ` | ${this.startDateInput.value} to ${this.endDateInput.value}`;
+                } else if (this.daysFilter.value) {
+                    return ` | Last ${this.daysFilter.value} days`;
+                }
+                return ' | All Time';
             }
 
             render() {
@@ -1248,7 +1390,13 @@
                     const params = new URLSearchParams();
                     
                     const daysBack = this.daysFilter.value;
-                    if (daysBack) {
+                    if (daysBack === 'custom') {
+                        // Use custom date range
+                        if (this.startDateInput.value && this.endDateInput.value) {
+                            params.append('startDate', this.startDateInput.value);
+                            params.append('endDate', this.endDateInput.value);
+                        }
+                    } else if (daysBack) {
                         params.append('daysBack', daysBack);
                     }
                     
@@ -1318,7 +1466,14 @@
                     // Fetch bugs from all teams
                     for (const team of teams) {
                         const params = new URLSearchParams();
-                        if (daysBack) {
+                        
+                        // Handle custom date range
+                        if (daysBack === 'custom') {
+                            if (this.startDateInput.value && this.endDateInput.value) {
+                                params.append('startDate', this.startDateInput.value);
+                                params.append('endDate', this.endDateInput.value);
+                            }
+                        } else if (daysBack) {
                             params.append('daysBack', daysBack);
                         }
                         params.append('pageSize', '200');
@@ -1413,7 +1568,7 @@
                                 <h2 style="margin: 0; font-size: 1.5rem;">${icon} ${title}</h2>
                                 <p style="margin: 5px 0 0 0; opacity: 0.9;">
                                     ${tickets.length} tickets across all teams
-                                    ${this.daysFilter.value ? ` | Last ${this.daysFilter.value} days` : ' | All Time'}
+                                    ${this.getTimeRangeText()}
                                 </p>
                             </div>
                             <button onclick="this.closest('div').parentElement.parentElement.remove()" style="

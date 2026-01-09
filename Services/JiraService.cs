@@ -17,6 +17,7 @@ namespace Alt_Support.Services
         Task<List<TicketInfo>> SearchTicketsAsync(string jqlQuery, int maxResults = 100);
         Task<List<string>> GetProjectComponentsAsync(IEnumerable<string> projectKeys);
         Task<List<JiraProject>> GetAvailableProjectsAsync();
+        Task<List<JiraIssueType>> GetProjectIssueTypesAsync(string projectKey);
     }
 
     public class JiraService : IJiraService
@@ -1010,6 +1011,56 @@ namespace Alt_Support.Services
                 return new List<JiraProject>();
             }
         }
+
+        public async Task<List<JiraIssueType>> GetProjectIssueTypesAsync(string projectKey)
+        {
+            try
+            {
+                _logger.LogInformation($"Fetching issue types for project: {projectKey}");
+                
+                var response = await _httpClient.GetAsync($"/rest/api/3/project/{projectKey}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning($"Failed to get project details for {projectKey}: {response.StatusCode}");
+                    return new List<JiraIssueType>();
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+
+                var issueTypes = new List<JiraIssueType>();
+                
+                if (root.TryGetProperty("issueTypes", out var issueTypesElement))
+                {
+                    foreach (var issueType in issueTypesElement.EnumerateArray())
+                    {
+                        var type = new JiraIssueType
+                        {
+                            Id = issueType.GetProperty("id").GetString() ?? "",
+                            Name = issueType.GetProperty("name").GetString() ?? "",
+                            Description = issueType.TryGetProperty("description", out var desc) ? desc.GetString() : null,
+                            Subtask = issueType.TryGetProperty("subtask", out var sub) && sub.GetBoolean()
+                        };
+                        
+                        // Exclude subtasks from the list
+                        if (!type.Subtask)
+                        {
+                            issueTypes.Add(type);
+                        }
+                    }
+                }
+
+                _logger.LogInformation($"Found {issueTypes.Count} issue types for project {projectKey}");
+                return issueTypes.OrderBy(t => t.Name).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error fetching issue types for project {projectKey}");
+                return new List<JiraIssueType>();
+            }
+        }
     }
 
     // Jira API Response Models
@@ -1044,5 +1095,18 @@ namespace Alt_Support.Services
     {
         public List<JiraProject>? Values { get; set; }
         public int Total { get; set; }
+    }
+
+    public class JiraIssueType
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool Subtask { get; set; }
+    }
+
+    public class JiraProjectIssueTypesResult
+    {
+        public List<JiraIssueType>? IssueTypes { get; set; }
     }
 }
