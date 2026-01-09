@@ -7,7 +7,6 @@ namespace Alt_Support.Configuration
         public string ApiToken { get; set; } = string.Empty;
         public string ProjectKey { get; set; } = string.Empty;
         public List<string> TargetProjects { get; set; } = new List<string>();
-        public int MaxHistoricalTickets { get; set; } = 1000;
         public bool EnableWebhookValidation { get; set; } = true;
         public string WebhookSecret { get; set; } = string.Empty;
     }

@@ -39,6 +39,10 @@ builder.Services.AddScoped<GitHubService>();
 builder.Services.AddScoped<ISimilarityService, SimilarityService>();
 builder.Services.AddScoped<ITicketDataService, TicketDataService>();
 builder.Services.AddScoped<ITicketAnalysisService, TicketAnalysisService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+// Add memory cache for dashboard
+builder.Services.AddMemoryCache();
 
 // Add background service for historical data sync
 builder.Services.AddHostedService<HistoricalDataSyncService>();
