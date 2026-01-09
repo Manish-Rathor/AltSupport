@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Dashboard - Alt Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        .header-nav {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .nav-link {
+            padding: 10px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Filters Section */
+        .filters-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .filters-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 20px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-dropdown {
+            position: relative;
+        }
+
+        .dropdown-button {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .dropdown-button:not(:disabled):hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .dropdown-button:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 8px;
+            background: rgba(30, 41, 59, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-option {
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            color: #e2e8f0;
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        .dropdown-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .date-range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .date-range-inputs input[type="date"] {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .date-range-inputs input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        select {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .filters-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .apply-btn, .reset-btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .apply-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .apply-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .apply-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+        }
+
+        .reset-btn:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: var(--danger);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 20px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Components Grid */
+        .components-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .component-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .component-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .component-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .component-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .component-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .component-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(99, 102, 241, 0.2);
+            transform: scale(1.05);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-item.total .stat-value { color: #a5b4fc; }
+        .stat-item.open .stat-value { color: #fca5a5; }
+        .stat-item.closed .stat-value { color: #86efac; }
+
+        .view-all-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-all-btn:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--primary);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 1200px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: var(--danger);
+        }
+
+        .tickets-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .ticket-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .ticket-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .ticket-key {
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s ease;
+        }
+
+        .ticket-key:hover {
+            color: #a5b4fc;
+        }
+
+        .ticket-status {
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ticket-status.open {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .ticket-status.closed {
+            background: rgba(16, 185, 129, 0.2);
+            color: #86efac;
+        }
+
+        .ticket-summary {
+            color: #e2e8f0;
+            font-weight: 500;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .ticket-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-text {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🎯 Custom Dashboard</h1>
+            <p>Advanced Jira Analytics & Insights</p>
+            <div class="header-nav">
+                <a href="index.html" class="nav-link">Main</a>
+                <a href="team-dashboard.html" class="nav-link">CMI Dashboard</a>
+                <a href="custom-dashboard.html" class="nav-link active">Custom Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filters-title">📊 Filters & Configuration</div>
+            
+            <div class="filters-grid">
+                <!-- Project Filter -->
+                <div class="filter-group">
+                    <label>Project</label>
+                    <div class="filter-dropdown">
+                        <button class="dropdown-button" id="projectDropdown">
+                            <span id="projectLabel">Loading...</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="dropdown-menu" id="projectMenu">
+                            <!-- Projects will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Type Filter -->
+                <div class="filter-group">
+                    <label>Type</label>
+                    <div class="filter-dropdown">
+                        <button class="dropdown-button" id="typeDropdown">
+                            <span id="typeLabel">Select Types...</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="dropdown-menu" id="typeMenu">
+                            <div class="dropdown-option">
+                                <input type="checkbox" value="Bug" id="type-Bug">
+                                <label for="type-Bug">Bug</label>
+                            </div>
+                            <div class="dropdown-option">
+                                <input type="checkbox" value="Story" id="type-Story">
+                                <label for="type-Story">Story</label>
+                            </div>
+                            <div class="dropdown-option">
+                                <input type="checkbox" value="Task" id="type-Task">
+                                <label for="type-Task">Task</label>
+                            </div>
+                            <div class="dropdown-option">
+                                <input type="checkbox" value="Epic" id="type-Epic">
+                                <label for="type-Epic">Epic</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Components Filter -->
+                <div class="filter-group">
+                    <label>Components</label>
+                    <div class="filter-dropdown">
+                        <button class="dropdown-button" id="componentDropdown" disabled>
+                            <span id="componentLabel">Select Projects First...</span>
+                            <span>▼</span>
+                        </button>
+                        <div class="dropdown-menu" id="componentMenu">
+                            <!-- Components will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Range Filter -->
+                <div class="filter-group">
+                    <label>Time Range</label>
+                    <select id="timeRange">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="60">Last 60 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="180">Last 6 Months</option>
+                        <option value="365">Last 1 Year</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Custom Date Range -->
+            <div class="date-range-inputs" id="customDateRange" style="display: none;">
+                <input type="date" id="startDate" placeholder="Start Date">
+                <input type="date" id="endDate" placeholder="End Date">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="filters-actions">
+                <button class="apply-btn" id="applyFilters">
+                    <span>🔍</span>
+                    Apply Filters
+                </button>
+                <button class="reset-btn" id="resetFilters">
+                    <span>🔄</span>
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loadingState" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading dashboard data...</p>
+        </div>
+
+        <!-- Components Section -->
+        <div class="components-section" id="componentsSection" style="display: none;">
+            <div class="section-title">
+                <span>📦</span>
+                Component Statistics
+            </div>
+            <div class="components-grid" id="componentsGrid">
+                <!-- Component cards will be added here dynamically -->
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon">📊</div>
+            <div class="empty-text">Select filters and click "Apply Filters" to view dashboard</div>
+        </div>
+    </div>
+
+    <!-- Tickets Modal -->
+    <div class="modal" id="ticketsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Tickets</h2>
+                <button class="modal-close" id="closeModal">×</button>
+            </div>
+            <div class="tickets-list" id="ticketsList">
+                <!-- Tickets will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let selectedProjects = [];
+        let selectedTypes = [];
+        let selectedComponents = [];
+        let availableComponents = [];
+        let dashboardData = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProjects();
+            initializeDropdowns();
+            initializeEventListeners();
+        });
+
+        // Load Projects from API
+        async function loadProjects() {
+            try {
+                document.getElementById('projectLabel').textContent = 'Loading...';
+                document.getElementById('projectDropdown').disabled = true;
+
+                const response = await fetch('/api/tickets/projects');
+                if (!response.ok) throw new Error('Failed to load projects');
+
+                const projects = await response.json();
+                populateProjectMenu(projects);
+
+                document.getElementById('projectDropdown').disabled = false;
+                document.getElementById('projectLabel').textContent = 'Select Projects...';
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                document.getElementById('projectLabel').textContent = 'Error loading';
+                alert('Failed to load projects. Please refresh the page.');
+            }
+        }
+
+        // Populate Project Menu
+        function populateProjectMenu(projects) {
+            const menu = document.getElementById('projectMenu');
+            menu.innerHTML = '';
+
+            if (projects.length === 0) {
+                menu.innerHTML = '<div style="padding: 10px; color: #94a3b8;">No projects found</div>';
+                return;
+            }
+
+            projects.forEach(project => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.innerHTML = `
+                    <input type="checkbox" value="${project.key}" id="proj-${project.key}">
+                    <label for="proj-${project.key}">${project.key} - ${project.name}</label>
+                `;
+                menu.appendChild(option);
+
+                const checkbox = option.querySelector('input');
+                checkbox.addEventListener('change', () => {
+                    updateProjectSelection();
+                    updateDropdownLabel('projectMenu', 'projectLabel');
+                });
+            });
+
+            // Setup dropdown after populating
+            setupProjectDropdown();
+        }
+
+        // Setup Project Dropdown
+        function setupProjectDropdown() {
+            const button = document.getElementById('projectDropdown');
+            const menu = document.getElementById('projectMenu');
+
+            button.removeEventListener('click', handleProjectDropdownClick);
+            button.addEventListener('click', handleProjectDropdownClick);
+
+            menu.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', () => {
+                menu.classList.remove('show');
+            });
+        }
+
+        function handleProjectDropdownClick(e) {
+            e.stopPropagation();
+            const button = document.getElementById('projectDropdown');
+            const menu = document.getElementById('projectMenu');
+            if (!button.disabled) {
+                menu.classList.toggle('show');
+            }
+        }
+
+        // Initialize Dropdowns
+        function initializeDropdowns() {
+            setupMultiSelectDropdown('typeDropdown', 'typeMenu', 'typeLabel', updateTypeSelection);
+            setupMultiSelectDropdown('componentDropdown', 'componentMenu', 'componentLabel', updateComponentSelection);
+        }
+
+        // Setup Multi-Select Dropdown
+        function setupMultiSelectDropdown(buttonId, menuId, labelId, onChange) {
+            const button = document.getElementById(buttonId);
+            const menu = document.getElementById(menuId);
+
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!button.disabled) {
+                    menu.classList.toggle('show');
+                }
+            });
+
+            menu.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            const checkboxes = menu.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    onChange();
+                    updateDropdownLabel(menuId, labelId);
+                });
+            });
+
+            document.addEventListener('click', () => {
+                menu.classList.remove('show');
+            });
+        }
+
+        // Update Dropdown Label
+        function updateDropdownLabel(menuId, labelId) {
+            const menu = document.getElementById(menuId);
+            const label = document.getElementById(labelId);
+            const checkedBoxes = menu.querySelectorAll('input[type="checkbox"]:checked');
+            
+            if (checkedBoxes.length === 0) {
+                if (menuId === 'componentMenu') {
+                    label.textContent = selectedProjects.length > 0 ? 'Select Components...' : 'Select Projects First...';
+                } else {
+                    label.textContent = `Select ${menuId.includes('project') ? 'Projects' : 'Types'}...`;
+                }
+            } else if (checkedBoxes.length === 1) {
+                label.textContent = checkedBoxes[0].value;
+            } else {
+                label.textContent = `${checkedBoxes.length} selected`;
+            }
+        }
+
+        // Update Project Selection
+        function updateProjectSelection() {
+            const checkboxes = document.querySelectorAll('#projectMenu input[type="checkbox"]:checked');
+            selectedProjects = Array.from(checkboxes).map(cb => cb.value);
+            
+            // Enable/disable components dropdown and load components
+            const componentDropdown = document.getElementById('componentDropdown');
+            if (selectedProjects.length > 0) {
+                componentDropdown.disabled = false;
+                loadComponents();
+            } else {
+                componentDropdown.disabled = true;
+                selectedComponents = [];
+                document.getElementById('componentLabel').textContent = 'Select Projects First...';
+                clearComponentMenu();
+            }
+        }
+
+        // Update Type Selection
+        function updateTypeSelection() {
+            const checkboxes = document.querySelectorAll('#typeMenu input[type="checkbox"]:checked');
+            selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Update Component Selection
+        function updateComponentSelection() {
+            const checkboxes = document.querySelectorAll('#componentMenu input[type="checkbox"]:checked');
+            selectedComponents = Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Load Components from Jira
+        async function loadComponents() {
+            try {
+                const componentDropdown = document.getElementById('componentDropdown');
+                componentDropdown.disabled = true;
+                document.getElementById('componentLabel').textContent = 'Loading...';
+
+                const response = await fetch(`/api/tickets/components?projects=${selectedProjects.join(',')}`);
+                if (!response.ok) throw new Error('Failed to load components');
+
+                const components = await response.json();
+                availableComponents = components;
+
+                // Populate components dropdown
+                populateComponentMenu(components);
+
+                componentDropdown.disabled = false;
+                document.getElementById('componentLabel').textContent = 'Select Components...';
+            } catch (error) {
+                console.error('Error loading components:', error);
+                alert('Failed to load components. Please try again.');
+                document.getElementById('componentLabel').textContent = 'Error loading';
+            }
+        }
+
+        // Populate Component Menu
+        function populateComponentMenu(components) {
+            const menu = document.getElementById('componentMenu');
+            menu.innerHTML = '';
+
+            if (components.length === 0) {
+                menu.innerHTML = '<div style="padding: 10px; color: #94a3b8;">No components found</div>';
+                return;
+            }
+
+            components.forEach(component => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.innerHTML = `
+                    <input type="checkbox" value="${component}" id="comp-${component}">
+                    <label for="comp-${component}">${component}</label>
+                `;
+                menu.appendChild(option);
+
+                const checkbox = option.querySelector('input');
+                checkbox.addEventListener('change', () => {
+                    updateComponentSelection();
+                    updateDropdownLabel('componentMenu', 'componentLabel');
+                });
+            });
+        }
+
+        // Clear Component Menu
+        function clearComponentMenu() {
+            const menu = document.getElementById('componentMenu');
+            menu.innerHTML = '';
+        }
+
+        // Initialize Event Listeners
+        function initializeEventListeners() {
+            // Time Range Change
+            document.getElementById('timeRange').addEventListener('change', (e) => {
+                const customDateRange = document.getElementById('customDateRange');
+                if (e.target.value === 'custom') {
+                    customDateRange.style.display = 'grid';
+                } else {
+                    customDateRange.style.display = 'none';
+                }
+            });
+
+            // Apply Filters
+            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+
+            // Reset Filters
+            document.getElementById('resetFilters').addEventListener('click', resetFilters);
+
+            // Close Modal
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('ticketsModal').addEventListener('click', (e) => {
+                if (e.target.id === 'ticketsModal') {
+                    closeModal();
+                }
+            });
+        }
+
+        // Apply Filters
+        async function applyFilters() {
+            if (selectedProjects.length === 0 || selectedTypes.length === 0) {
+                alert('Please select at least one Project and one Type');
+                return;
+            }
+
+            const timeRange = document.getElementById('timeRange').value;
+            let startDate, endDate;
+
+            if (timeRange === 'custom') {
+                startDate = document.getElementById('startDate').value;
+                endDate = document.getElementById('endDate').value;
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+            } else {
+                const daysBack = parseInt(timeRange);
+                endDate = new Date().toISOString().split('T')[0];
+                const start = new Date();
+                start.setDate(start.getDate() - daysBack);
+                startDate = start.toISOString().split('T')[0];
+            }
+
+            showLoading();
+
+            try {
+                const params = new URLSearchParams({
+                    projects: selectedProjects.join(','),
+                    types: selectedTypes.join(','),
+                    components: selectedComponents.join(','),
+                    startDate: startDate,
+                    endDate: endDate
+                });
+
+                const response = await fetch(`/api/tickets/dashboard-data?${params}`);
+                if (!response.ok) throw new Error('Failed to fetch dashboard data');
+
+                dashboardData = await response.json();
+                renderDashboard(dashboardData);
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                alert('Failed to load dashboard data. Please try again.');
+                hideLoading();
+            }
+        }
+
+        // Reset Filters
+        function resetFilters() {
+            // Uncheck all checkboxes
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            
+            // Reset selections
+            selectedProjects = [];
+            selectedTypes = [];
+            selectedComponents = [];
+            
+            // Reset labels
+            document.getElementById('projectLabel').textContent = 'Select Projects...';
+            document.getElementById('typeLabel').textContent = 'Select Types...';
+            document.getElementById('componentLabel').textContent = 'Select Projects First...';
+            
+            // Disable components
+            document.getElementById('componentDropdown').disabled = true;
+            clearComponentMenu();
+            
+            // Reset time range
+            document.getElementById('timeRange').value = '30';
+            document.getElementById('customDateRange').style.display = 'none';
+            
+            // Clear dashboard
+            document.getElementById('componentsSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+
+        // Show Loading
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('componentsSection').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        // Hide Loading
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        // Render Dashboard
+        function renderDashboard(data) {
+            hideLoading();
+
+            if (!data.components || data.components.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('componentsSection').style.display = 'block';
+
+            const grid = document.getElementById('componentsGrid');
+            grid.innerHTML = '';
+
+            data.components.forEach(component => {
+                const card = createComponentCard(component);
+                grid.appendChild(card);
+            });
+        }
+
+        // Create Component Card
+        function createComponentCard(component) {
+            const card = document.createElement('div');
+            card.className = 'component-card';
+            card.innerHTML = `
+                <div class="component-header">
+                    <div class="component-icon">📦</div>
+                    <div class="component-name">${component.name}</div>
+                </div>
+                <div class="component-stats">
+                    <div class="stat-item total" onclick="showTickets('${component.name}', 'all')">
+                        <div class="stat-value">${component.total}</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item open" onclick="showTickets('${component.name}', 'open')">
+                        <div class="stat-value">${component.open}</div>
+                        <div class="stat-label">Open</div>
+                    </div>
+                    <div class="stat-item closed" onclick="showTickets('${component.name}', 'closed')">
+                        <div class="stat-value">${component.closed}</div>
+                        <div class="stat-label">Closed</div>
+                    </div>
+                </div>
+                <button class="view-all-btn" onclick="showTickets('${component.name}', 'all')">
+                    View All Tickets
+                </button>
+            `;
+            return card;
+        }
+
+        // Show Tickets Modal
+        async function showTickets(componentName, statusFilter) {
+            const modal = document.getElementById('ticketsModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const ticketsList = document.getElementById('ticketsList');
+
+            // Set title
+            let titleText = `${componentName} - `;
+            if (statusFilter === 'all') titleText += 'All Tickets';
+            else if (statusFilter === 'open') titleText += 'Open Tickets';
+            else titleText += 'Closed Tickets';
+            modalTitle.textContent = titleText;
+
+            // Show loading
+            ticketsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading tickets...</p></div>';
+            modal.classList.add('show');
+
+            try {
+                const timeRange = document.getElementById('timeRange').value;
+                let startDate, endDate;
+
+                if (timeRange === 'custom') {
+                    startDate = document.getElementById('startDate').value;
+                    endDate = document.getElementById('endDate').value;
+                } else {
+                    const daysBack = parseInt(timeRange);
+                    endDate = new Date().toISOString().split('T')[0];
+                    const start = new Date();
+                    start.setDate(start.getDate() - daysBack);
+                    startDate = start.toISOString().split('T')[0];
+                }
+
+                const params = new URLSearchParams({
+                    projects: selectedProjects.join(','),
+                    types: selectedTypes.join(','),
+                    component: componentName,
+                    statusFilter: statusFilter,
+                    startDate: startDate,
+                    endDate: endDate
+                });
+
+                const response = await fetch(`/api/tickets/component-tickets?${params}`);
+                if (!response.ok) throw new Error('Failed to fetch tickets');
+
+                const tickets = await response.json();
+                renderTicketsList(tickets);
+            } catch (error) {
+                console.error('Error fetching tickets:', error);
+                ticketsList.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load tickets</div></div>';
+            }
+        }
+
+        // Render Tickets List
+        function renderTicketsList(tickets) {
+            const ticketsList = document.getElementById('ticketsList');
+
+            if (tickets.length === 0) {
+                ticketsList.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No tickets found</div></div>';
+                return;
+            }
+
+            ticketsList.innerHTML = '';
+            tickets.forEach(ticket => {
+                const item = createTicketItem(ticket);
+                ticketsList.appendChild(item);
+            });
+        }
+
+        // Create Ticket Item
+        function createTicketItem(ticket) {
+            const item = document.createElement('div');
+            item.className = 'ticket-item';
+
+            const isOpen = ticket.status !== 'Done' && ticket.status !== 'Closed' && ticket.status !== 'Resolved';
+            const statusClass = isOpen ? 'open' : 'closed';
+            const statusText = isOpen ? 'Open' : 'Closed';
+
+            item.innerHTML = `
+                <div class="ticket-header">
+                    <a href="https://navex.atlassian.net/browse/${ticket.key}" target="_blank" class="ticket-key">
+                        ${ticket.key}
+                    </a>
+                    <span class="ticket-status ${statusClass}">${statusText}</span>
+                </div>
+                <div class="ticket-summary">${ticket.summary}</div>
+                <div class="ticket-meta">
+                    <span>📌 ${ticket.type}</span>
+                    <span>📊 ${ticket.status}</span>
+                    <span>📅 ${new Date(ticket.created).toLocaleDateString()}</span>
+                </div>
+            `;
+            return item;
+        }
+
+        // Close Modal
+        function closeModal() {
+            document.getElementById('ticketsModal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
