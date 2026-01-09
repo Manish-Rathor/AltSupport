@@ -162,7 +162,9 @@ namespace Alt_Support.Controllers
         [HttpGet("statistics/bugs-by-team")]
         public async Task<ActionResult> GetBugsByTeam(
             [FromQuery] string? project = null,
-            [FromQuery] int? daysBack = null)
+            [FromQuery] int? daysBack = null,
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null)
         {
             try
             {
@@ -190,7 +192,12 @@ namespace Alt_Support.Controllers
                         jqlParts.Add($"project = \"{project}\"");
                     }
                     
-                    if (daysBack.HasValue && daysBack.Value > 0)
+                    // Custom date range takes precedence over daysBack
+                    if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
+                    {
+                        jqlParts.Add($"created >= \"{startDate}\" AND created <= \"{endDate}\"");
+                    }
+                    else if (daysBack.HasValue && daysBack.Value > 0)
                     {
                         jqlParts.Add($"created >= -{daysBack.Value}d");
                     }
@@ -232,6 +239,7 @@ namespace Alt_Support.Controllers
                     GeneratedAt = DateTime.UtcNow,
                     FilteredByProject = project,
                     FilteredByDaysBack = daysBack,
+                    FilteredByDateRange = !string.IsNullOrEmpty(startDate) ? $"{startDate} to {endDate}" : null,
                     TotalTeams = bugsByTeam.Count,
                     Summary = new
                     {
@@ -262,6 +270,8 @@ namespace Alt_Support.Controllers
             string componentName,
             [FromQuery] string? project = null,
             [FromQuery] int? daysBack = null,
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
@@ -284,7 +294,12 @@ namespace Alt_Support.Controllers
                     jqlParts.Add($"project = \"{project}\"");
                 }
                 
-                if (daysBack.HasValue && daysBack.Value > 0)
+                // Custom date range takes precedence over daysBack
+                if (!string.IsNullOrEmpty(startDate) && !string.IsNullOrEmpty(endDate))
+                {
+                    jqlParts.Add($"created >= \"{startDate}\" AND created <= \"{endDate}\"");
+                }
+                else if (daysBack.HasValue && daysBack.Value > 0)
                 {
                     jqlParts.Add($"created >= -{daysBack.Value}d");
                 }
@@ -305,6 +320,7 @@ namespace Alt_Support.Controllers
                     Component = componentName,
                     FilteredByProject = project,
                     FilteredByDaysBack = daysBack,
+                    FilteredByDateRange = !string.IsNullOrEmpty(startDate) ? $"{startDate} to {endDate}" : null,
                     TotalBugs = allTickets.Count,
                     OpenBugs = allTickets.Count(t => t.Status != "Done" && t.Status != "Closed" && t.Status != "Resolved"),
                     ResolvedBugs = allTickets.Count(t => t.Status == "Done" || t.Status == "Closed" || t.Status == "Resolved"),
@@ -1105,6 +1121,32 @@ namespace Alt_Support.Controllers
         }
 
         /// <summary>
+        /// Get available issue types for a project
+        /// </summary>
+        [HttpGet("issue-types/{projectKey}")]
+        public async Task<ActionResult> GetIssueTypes(string projectKey)
+        {
+            try
+            {
+                _logger.LogInformation($"Fetching issue types for project: {projectKey}");
+
+                var issueTypes = await _jiraService.GetProjectIssueTypesAsync(projectKey);
+                
+                return Ok(issueTypes.Select(t => new
+                {
+                    t.Id,
+                    t.Name,
+                    t.Description
+                }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error fetching issue types for project {projectKey}");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Get available components for selected projects
         /// </summary>
         [HttpGet("components")]
@@ -1265,22 +1307,23 @@ namespace Alt_Support.Controllers
         public async Task<ActionResult> GetComponentTickets(
             [FromQuery] string projects,
             [FromQuery] string types,
-            [FromQuery] string component,
+            [FromQuery] string? component = null,
+            [FromQuery] string? components = null,
             [FromQuery] string statusFilter = "all",
             [FromQuery] string? startDate = null,
             [FromQuery] string? endDate = null)
         {
             try
             {
-                if (string.IsNullOrEmpty(projects) || string.IsNullOrEmpty(types) || string.IsNullOrEmpty(component))
+                if (string.IsNullOrEmpty(projects) || string.IsNullOrEmpty(types))
                 {
-                    return BadRequest("Projects, Types, and Component parameters are required");
+                    return BadRequest("Projects and Types parameters are required");
                 }
 
                 var projectList = projects.Split(',', StringSplitOptions.RemoveEmptyEntries);
                 var typeList = types.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-                _logger.LogInformation($"Fetching tickets for component {component} with status filter: {statusFilter}");
+                _logger.LogInformation($"Fetching tickets with status filter: {statusFilter}, component: {component ?? "all"}, components: {components ?? "none"}");
 
                 // Build JQL query
                 var jqlParts = new List<string>();
@@ -1305,8 +1348,26 @@ namespace Alt_Support.Controllers
                     jqlParts.Add($"type in ({string.Join(",", typeList.Select(t => $"\"{t}\""))})");
                 }
 
-                // Component
-                jqlParts.Add($"component = \"{component}\"");
+                // Component(s) - optional
+                if (!string.IsNullOrEmpty(component))
+                {
+                    // Single component specified
+                    jqlParts.Add($"component = \"{component}\"");
+                }
+                else if (!string.IsNullOrEmpty(components))
+                {
+                    // Multiple components specified
+                    var componentList = components.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                    if (componentList.Length == 1)
+                    {
+                        jqlParts.Add($"component = \"{componentList[0]}\"");
+                    }
+                    else if (componentList.Length > 1)
+                    {
+                        jqlParts.Add($"component in ({string.Join(",", componentList.Select(c => $"\"{c}\""))})");
+                    }
+                }
+                // If neither component nor components is specified, fetch all tickets (no component filter)
 
                 // Status filter
                 if (statusFilter == "open")
@@ -1344,7 +1405,8 @@ namespace Alt_Support.Controllers
                     Created = t.CreatedDate,
                     Updated = t.UpdatedDate,
                     Assignee = t.Assignee,
-                    Reporter = t.Reporter
+                    Reporter = t.Reporter,
+                    Component = t.Components?.FirstOrDefault() ?? "N/A"
                 }).ToList();
 
                 return Ok(response);

@@ -179,7 +179,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 12px;
             padding: 8px;
-            max-height: 300px;
+            max-height: 350px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
@@ -189,6 +189,53 @@
 
         .dropdown-menu.show {
             display: block;
+        }
+
+        /* Dropdown Search Input */
+        .dropdown-search {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            font-size: 0.9rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-search:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .dropdown-search::placeholder {
+            color: #94a3b8;
+        }
+
+        .dropdown-options-container {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .dropdown-options-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-options-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .dropdown-options-container::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.5);
+            border-radius: 3px;
+        }
+
+        .dropdown-options-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
         }
 
         .dropdown-option {
@@ -206,33 +253,121 @@
             background: rgba(99, 102, 241, 0.3);
         }
 
+        .dropdown-option.hidden {
+            display: none;
+        }
+
         .dropdown-option input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
         }
 
+        .no-results {
+            padding: 15px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .no-results.show {
+            display: block;
+        }
+
         .date-range-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             margin-top: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            flex-wrap: nowrap;
+        }
+
+        .date-range-inputs label {
+            margin: 0;
+            white-space: nowrap;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            color: #94a3b8;
+            font-weight: 600;
         }
 
         .date-range-inputs input[type="date"] {
-            padding: 12px 16px;
+            width: 140px;
+            flex-shrink: 0;
+            padding: 10px 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
-            font-size: 0.9rem;
-            font-weight: 500;
+            background: rgba(255, 255, 255, 0.05);
+            color: #f8fafc;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            color-scheme: dark;
         }
 
         .date-range-inputs input[type="date"]:focus {
             outline: none;
             border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            color: #ffffff;
+        }
+
+        .date-range-inputs input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(1) brightness(2);
+            opacity: 1;
+        }
+        
+        .date-range-inputs input[type="date"]:hover::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(2.5);
+        }
+
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit {
+            color: #f8fafc;
+        }
+
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+            color: #f8fafc;
+        }
+
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit-text {
+            color: #94a3b8;
+        }
+
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit-month-field,
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit-day-field,
+        .date-range-inputs input[type="date"]::-webkit-datetime-edit-year-field {
+            color: #f8fafc;
+        }
+
+        .date-apply-btn {
+            padding: 10px 16px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-width: auto;
+            font-size: 0.85rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-apply-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
         }
 
         select {
@@ -250,6 +385,16 @@
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        select option {
+            background: rgba(30, 41, 59, 0.98);
+            color: #e2e8f0;
+            padding: 8px;
+        }
+
+        select option:hover {
+            background: rgba(99, 102, 241, 0.2);
         }
 
         .filters-actions {
@@ -320,7 +465,135 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Components Grid */
+        /* Summary Cards - Like CMI Dashboard */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 20px;
+            padding: 28px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .summary-card.total {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .summary-card.open {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .summary-card.resolved {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .summary-card.rate {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .summary-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 18px;
+        }
+
+        .summary-card.total .summary-icon { background: rgba(99, 102, 241, 0.3); }
+        .summary-card.open .summary-icon { background: rgba(239, 68, 68, 0.3); }
+        .summary-card.resolved .summary-icon { background: rgba(16, 185, 129, 0.3); }
+        .summary-card.rate .summary-icon { background: rgba(245, 158, 11, 0.3); }
+
+        .summary-card.clickable {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .summary-card.clickable:hover {
+            transform: translateY(-8px) scale(1.02);
+        }
+
+        .summary-card.clickable:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .click-hint {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .summary-card.clickable:hover .click-hint {
+            opacity: 1;
+        }
+
+        .summary-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #f8fafc;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .summary-label {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Timestamp */
+        .timestamp {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            display: none;
+        }
+
+        .timestamp.show {
+            display: block;
+        }
+
+        /* Components Grid - Like Teams Grid */
         .components-section {
             margin-bottom: 40px;
         }
@@ -342,100 +615,199 @@
         }
 
         .component-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            background: var(--card-bg);
             border-radius: 20px;
-            padding: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
         }
 
         .component-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
         }
 
-        .component-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 20px;
+        .component-card-header {
+            padding: 24px 24px 20px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .component-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
+        /* Colorful headers like CMI Dashboard */
+        .component-card:nth-child(1) .component-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .component-card:nth-child(2) .component-card-header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .component-card:nth-child(3) .component-card-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .component-card:nth-child(4) .component-card-header { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .component-card:nth-child(5) .component-card-header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .component-card:nth-child(6) .component-card-header { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+        .component-card:nth-child(7) .component-card-header { background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%); }
+        .component-card:nth-child(8) .component-card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .component-card:nth-child(9) .component-card-header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .component-card:nth-child(10) .component-card-header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .component-card:nth-child(11) .component-card-header { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .component-card:nth-child(12) .component-card-header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+        .component-card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            pointer-events: none;
         }
 
         .component-name {
-            font-size: 1.2rem;
+            font-size: 1.35rem;
             font-weight: 700;
-            color: #f8fafc;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .component-type {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.85);
+            font-weight: 500;
+            margin-top: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .component-card-body {
+            padding: 24px;
         }
 
         .component-stats {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: 16px;
+            margin-bottom: 20px;
         }
 
         .stat-item {
             text-align: center;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            cursor: pointer;
+            padding: 16px 10px;
+            background: var(--light);
+            border-radius: 14px;
             transition: all 0.3s ease;
         }
 
         .stat-item:hover {
-            background: rgba(99, 102, 241, 0.2);
+            background: #e2e8f0;
             transform: scale(1.05);
         }
 
         .stat-value {
             font-size: 1.8rem;
             font-weight: 800;
-            color: #f8fafc;
             line-height: 1;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
+
+        .stat-item.total .stat-value { color: var(--primary); }
+        .stat-item.open .stat-value { color: var(--danger); }
+        .stat-item.resolved .stat-value { color: var(--success); }
 
         .stat-label {
             font-size: 0.75rem;
-            color: #94a3b8;
+            color: var(--text-secondary);
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
-        .stat-item.total .stat-value { color: #a5b4fc; }
-        .stat-item.open .stat-value { color: #fca5a5; }
-        .stat-item.closed .stat-value { color: #86efac; }
+        .stat-clickable {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .stat-clickable:hover {
+            transform: scale(1.1);
+        }
+
+        .stat-clickable:active {
+            transform: scale(0.95);
+        }
+
+        /* Progress Bar */
+        .resolution-progress {
+            margin-top: 5px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .progress-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .progress-value {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, #34d399 100%);
+            border-radius: 10px;
+            transition: width 1s ease-out;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
 
         .view-all-btn {
             width: 100%;
             padding: 12px;
-            background: rgba(99, 102, 241, 0.2);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            border-radius: 12px;
-            color: #e2e8f0;
+            margin-top: 15px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
             font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .view-all-btn:hover {
-            background: rgba(99, 102, 241, 0.3);
-            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
         }
 
         /* Modal */
@@ -458,120 +830,207 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: #ffffff;
             border-radius: 24px;
-            padding: 40px;
-            max-width: 1200px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 85vh;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
         }
 
         .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 30px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+            align-items: flex-start;
+        }
+
+        .modal-header-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
         .modal-title {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
-            color: #f8fafc;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-subtitle {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 500;
         }
 
         .modal-close {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            color: #e2e8f0;
+            font-size: 1.3rem;
+            color: #ffffff;
             transition: all 0.3s ease;
         }
 
         .modal-close:hover {
-            background: rgba(239, 68, 68, 0.3);
-            border-color: var(--danger);
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
 
-        .tickets-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+        .tickets-table-container {
+            padding: 20px 30px 30px;
+            max-height: calc(85vh - 100px);
+            overflow-y: auto;
         }
 
-        .ticket-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            transition: all 0.3s ease;
+        .tickets-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
         }
 
-        .ticket-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            transform: translateX(5px);
+        .tickets-table thead {
+            position: sticky;
+            top: 0;
+            background: #f8fafc;
+            z-index: 10;
         }
 
-        .ticket-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
+        .tickets-table th {
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
         }
 
-        .ticket-key {
-            font-weight: 700;
+        .tickets-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        .tickets-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .tickets-table .ticket-key {
+            font-weight: 600;
             color: var(--primary);
             text-decoration: none;
-            font-size: 0.95rem;
             transition: color 0.3s ease;
         }
 
-        .ticket-key:hover {
-            color: #a5b4fc;
+        .tickets-table .ticket-key:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
         }
 
-        .ticket-status {
-            padding: 6px 14px;
-            border-radius: 8px;
+        .tickets-table .ticket-title {
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            text-transform: capitalize;
         }
 
-        .ticket-status.open {
-            background: rgba(239, 68, 68, 0.2);
-            color: #fca5a5;
+        .badge-component {
+            background: #e0e7ff;
+            color: #3730a3;
         }
 
-        .ticket-status.closed {
-            background: rgba(16, 185, 129, 0.2);
-            color: #86efac;
+        .badge-status {
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-weight: 600;
         }
 
-        .ticket-summary {
-            color: #e2e8f0;
+        .badge-status.open {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-status.closed, .badge-status.done, .badge-status.resolved {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .badge-status.in-progress {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .badge-priority {
             font-weight: 500;
-            margin-bottom: 10px;
-            line-height: 1.5;
+            color: #64748b;
         }
 
-        .ticket-meta {
-            display: flex;
-            gap: 20px;
-            font-size: 0.85rem;
-            color: #94a3b8;
+        .badge-priority.high, .badge-priority.highest {
+            color: #dc2626;
+        }
+
+        .badge-priority.medium {
+            color: #d97706;
+        }
+
+        .badge-priority.low, .badge-priority.lowest {
+            color: #059669;
+        }
+
+        .badge-version {
+            background: #1e293b;
+            color: #ffffff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-version.na {
+            background: #94a3b8;
+        }
+
+        .tickets-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .tickets-empty-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .tickets-loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .tickets-loading .spinner {
+            border-top-color: var(--primary);
         }
 
         .empty-state {
@@ -597,9 +1056,9 @@
             <h1>🎯 Custom Dashboard</h1>
             <p>Advanced Jira Analytics & Insights</p>
             <div class="header-nav">
-                <a href="index.html" class="nav-link">Main</a>
-                <a href="team-dashboard.html" class="nav-link">CMI Dashboard</a>
-                <a href="custom-dashboard.html" class="nav-link active">Custom Dashboard</a>
+                <a href="index.html" class="nav-link">← Back</a>
+                <a href="index.html" class="nav-link">🔍 Ticket Search</a>
+                <a href="custom-dashboard.html" class="nav-link active">🎯 Custom Dashboard</a>
             </div>
         </div>
 
@@ -617,7 +1076,11 @@
                             <span>▼</span>
                         </button>
                         <div class="dropdown-menu" id="projectMenu">
-                            <!-- Projects will be loaded dynamically -->
+                            <input type="text" class="dropdown-search" id="projectSearch" placeholder="🔍 Search projects...">
+                            <div class="dropdown-options-container" id="projectOptions">
+                                <!-- Projects will be loaded dynamically -->
+                            </div>
+                            <div class="no-results" id="projectNoResults">No projects found</div>
                         </div>
                     </div>
                 </div>
@@ -626,27 +1089,16 @@
                 <div class="filter-group">
                     <label>Type</label>
                     <div class="filter-dropdown">
-                        <button class="dropdown-button" id="typeDropdown">
-                            <span id="typeLabel">Select Types...</span>
+                        <button class="dropdown-button" id="typeDropdown" disabled>
+                            <span id="typeLabel">Select Projects First...</span>
                             <span>▼</span>
                         </button>
                         <div class="dropdown-menu" id="typeMenu">
-                            <div class="dropdown-option">
-                                <input type="checkbox" value="Bug" id="type-Bug">
-                                <label for="type-Bug">Bug</label>
+                            <input type="text" class="dropdown-search" id="typeSearch" placeholder="🔍 Search types...">
+                            <div class="dropdown-options-container" id="typeOptions">
+                                <!-- Types will be loaded dynamically -->
                             </div>
-                            <div class="dropdown-option">
-                                <input type="checkbox" value="Story" id="type-Story">
-                                <label for="type-Story">Story</label>
-                            </div>
-                            <div class="dropdown-option">
-                                <input type="checkbox" value="Task" id="type-Task">
-                                <label for="type-Task">Task</label>
-                            </div>
-                            <div class="dropdown-option">
-                                <input type="checkbox" value="Epic" id="type-Epic">
-                                <label for="type-Epic">Epic</label>
-                            </div>
+                            <div class="no-results" id="typeNoResults">No types found</div>
                         </div>
                     </div>
                 </div>
@@ -660,16 +1112,22 @@
                             <span>▼</span>
                         </button>
                         <div class="dropdown-menu" id="componentMenu">
-                            <!-- Components will be loaded dynamically -->
+                            <input type="text" class="dropdown-search" id="componentSearch" placeholder="🔍 Search components...">
+                            <div class="dropdown-options-container" id="componentOptions">
+                                <!-- Components will be loaded dynamically -->
+                            </div>
+                            <div class="no-results" id="componentNoResults">No components found</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Time Range Filter -->
                 <div class="filter-group">
-                    <label>Time Range</label>
+                    <label>📅 Time Range</label>
                     <select id="timeRange">
+                        <option value="">All Time</option>
                         <option value="7">Last 7 Days</option>
+                        <option value="14">Last 14 Days</option>
                         <option value="30" selected>Last 30 Days</option>
                         <option value="60">Last 60 Days</option>
                         <option value="90">Last 90 Days</option>
@@ -682,8 +1140,13 @@
 
             <!-- Custom Date Range -->
             <div class="date-range-inputs" id="customDateRange" style="display: none;">
-                <input type="date" id="startDate" placeholder="Start Date">
-                <input type="date" id="endDate" placeholder="End Date">
+                <label for="startDate">From:</label>
+                <input type="date" id="startDate">
+                <label for="endDate">To:</label>
+                <input type="date" id="endDate">
+                <button class="date-apply-btn" id="applyDateBtn">
+                    <span>✓</span> Apply
+                </button>
             </div>
 
             <!-- Action Buttons -->
@@ -699,10 +1162,40 @@
             </div>
         </div>
 
+        <!-- Timestamp -->
+        <div class="timestamp" id="timestamp"></div>
+
         <!-- Loading State -->
         <div class="loading" id="loadingState" style="display: none;">
             <div class="spinner"></div>
             <p>Loading dashboard data...</p>
+        </div>
+
+        <!-- Summary Cards Section -->
+        <div class="summary-grid" id="summarySection" style="display: none;">
+            <div class="summary-card total clickable" onclick="showTickets('all')">
+                <div class="summary-icon">📊</div>
+                <div class="summary-value" id="totalCount">0</div>
+                <div class="summary-label">Total Tickets</div>
+                <div class="click-hint">Click to view all tickets</div>
+            </div>
+            <div class="summary-card open clickable" onclick="showTickets('open')">
+                <div class="summary-icon">🔴</div>
+                <div class="summary-value" id="openCount">0</div>
+                <div class="summary-label">Open Tickets</div>
+                <div class="click-hint">Click to view open tickets</div>
+            </div>
+            <div class="summary-card resolved clickable" onclick="showTickets('closed')">
+                <div class="summary-icon">✅</div>
+                <div class="summary-value" id="closedCount">0</div>
+                <div class="summary-label">Resolved Tickets</div>
+                <div class="click-hint">Click to view resolved tickets</div>
+            </div>
+            <div class="summary-card rate">
+                <div class="summary-icon">📈</div>
+                <div class="summary-value" id="resolutionRate">0%</div>
+                <div class="summary-label">Resolution Rate</div>
+            </div>
         </div>
 
         <!-- Components Section -->
@@ -727,11 +1220,14 @@
     <div class="modal" id="ticketsModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">Tickets</h2>
+                <div class="modal-header-content">
+                    <h2 class="modal-title" id="modalTitle">🐛 All Tickets</h2>
+                    <div class="modal-subtitle" id="modalSubtitle">0 tickets | Last 30 days</div>
+                </div>
                 <button class="modal-close" id="closeModal">×</button>
             </div>
-            <div class="tickets-list" id="ticketsList">
-                <!-- Tickets will be added here dynamically -->
+            <div class="tickets-table-container" id="ticketsList">
+                <!-- Tickets table will be added here dynamically -->
             </div>
         </div>
     </div>
@@ -742,6 +1238,7 @@
         let selectedTypes = [];
         let selectedComponents = [];
         let availableComponents = [];
+        let availableTypes = [];
         let dashboardData = {};
 
         // Initialize
@@ -774,27 +1271,30 @@
 
         // Populate Project Menu
         function populateProjectMenu(projects) {
-            const menu = document.getElementById('projectMenu');
-            menu.innerHTML = '';
+            const optionsContainer = document.getElementById('projectOptions');
+            optionsContainer.innerHTML = '';
 
             if (projects.length === 0) {
-                menu.innerHTML = '<div style="padding: 10px; color: #94a3b8;">No projects found</div>';
+                document.getElementById('projectNoResults').classList.add('show');
                 return;
             }
+
+            document.getElementById('projectNoResults').classList.remove('show');
 
             projects.forEach(project => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-option';
+                option.setAttribute('data-value', `${project.key} - ${project.name}`.toLowerCase());
                 option.innerHTML = `
                     <input type="checkbox" value="${project.key}" id="proj-${project.key}">
                     <label for="proj-${project.key}">${project.key} - ${project.name}</label>
                 `;
-                menu.appendChild(option);
+                optionsContainer.appendChild(option);
 
                 const checkbox = option.querySelector('input');
                 checkbox.addEventListener('change', () => {
                     updateProjectSelection();
-                    updateDropdownLabel('projectMenu', 'projectLabel');
+                    updateDropdownLabel('projectOptions', 'projectLabel');
                 });
             });
 
@@ -864,16 +1364,18 @@
         }
 
         // Update Dropdown Label
-        function updateDropdownLabel(menuId, labelId) {
-            const menu = document.getElementById(menuId);
+        function updateDropdownLabel(containerId, labelId) {
+            const container = document.getElementById(containerId);
             const label = document.getElementById(labelId);
-            const checkedBoxes = menu.querySelectorAll('input[type="checkbox"]:checked');
+            const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
             
             if (checkedBoxes.length === 0) {
-                if (menuId === 'componentMenu') {
+                if (containerId === 'componentOptions') {
                     label.textContent = selectedProjects.length > 0 ? 'Select Components...' : 'Select Projects First...';
+                } else if (containerId === 'typeOptions') {
+                    label.textContent = selectedProjects.length > 0 ? 'Select Types...' : 'Select Projects First...';
                 } else {
-                    label.textContent = `Select ${menuId.includes('project') ? 'Projects' : 'Types'}...`;
+                    label.textContent = 'Select Projects...';
                 }
             } else if (checkedBoxes.length === 1) {
                 label.textContent = checkedBoxes[0].value;
@@ -884,15 +1386,25 @@
 
         // Update Project Selection
         function updateProjectSelection() {
-            const checkboxes = document.querySelectorAll('#projectMenu input[type="checkbox"]:checked');
+            const checkboxes = document.querySelectorAll('#projectOptions input[type="checkbox"]:checked');
             selectedProjects = Array.from(checkboxes).map(cb => cb.value);
             
-            // Enable/disable components dropdown and load components
+            // Enable/disable type and components dropdown
+            const typeDropdown = document.getElementById('typeDropdown');
             const componentDropdown = document.getElementById('componentDropdown');
+            
             if (selectedProjects.length > 0) {
-                componentDropdown.disabled = false;
+                // Load types and components
+                loadTypes();
                 loadComponents();
             } else {
+                // Disable type dropdown
+                typeDropdown.disabled = true;
+                selectedTypes = [];
+                document.getElementById('typeLabel').textContent = 'Select Projects First...';
+                clearTypeMenu();
+                
+                // Disable component dropdown
                 componentDropdown.disabled = true;
                 selectedComponents = [];
                 document.getElementById('componentLabel').textContent = 'Select Projects First...';
@@ -902,13 +1414,13 @@
 
         // Update Type Selection
         function updateTypeSelection() {
-            const checkboxes = document.querySelectorAll('#typeMenu input[type="checkbox"]:checked');
+            const checkboxes = document.querySelectorAll('#typeOptions input[type="checkbox"]:checked');
             selectedTypes = Array.from(checkboxes).map(cb => cb.value);
         }
 
         // Update Component Selection
         function updateComponentSelection() {
-            const checkboxes = document.querySelectorAll('#componentMenu input[type="checkbox"]:checked');
+            const checkboxes = document.querySelectorAll('#componentOptions input[type="checkbox"]:checked');
             selectedComponents = Array.from(checkboxes).map(cb => cb.value);
         }
 
@@ -939,47 +1451,184 @@
 
         // Populate Component Menu
         function populateComponentMenu(components) {
-            const menu = document.getElementById('componentMenu');
-            menu.innerHTML = '';
+            const optionsContainer = document.getElementById('componentOptions');
+            optionsContainer.innerHTML = '';
 
             if (components.length === 0) {
-                menu.innerHTML = '<div style="padding: 10px; color: #94a3b8;">No components found</div>';
+                document.getElementById('componentNoResults').classList.add('show');
                 return;
             }
+
+            document.getElementById('componentNoResults').classList.remove('show');
 
             components.forEach(component => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-option';
+                option.setAttribute('data-value', component.toLowerCase());
                 option.innerHTML = `
                     <input type="checkbox" value="${component}" id="comp-${component}">
                     <label for="comp-${component}">${component}</label>
                 `;
-                menu.appendChild(option);
+                optionsContainer.appendChild(option);
 
                 const checkbox = option.querySelector('input');
                 checkbox.addEventListener('change', () => {
                     updateComponentSelection();
-                    updateDropdownLabel('componentMenu', 'componentLabel');
+                    updateDropdownLabel('componentOptions', 'componentLabel');
                 });
             });
         }
 
         // Clear Component Menu
         function clearComponentMenu() {
-            const menu = document.getElementById('componentMenu');
-            menu.innerHTML = '';
+            const optionsContainer = document.getElementById('componentOptions');
+            optionsContainer.innerHTML = '';
+            document.getElementById('componentSearch').value = '';
+        }
+
+        // Load Types from Jira based on selected projects
+        async function loadTypes() {
+            try {
+                const typeDropdown = document.getElementById('typeDropdown');
+                typeDropdown.disabled = true;
+                document.getElementById('typeLabel').textContent = 'Loading...';
+
+                // Get issue types for the first selected project (all projects usually have same issue types)
+                const response = await fetch(`/api/tickets/issue-types/${selectedProjects[0]}`);
+                if (!response.ok) throw new Error('Failed to load issue types');
+
+                const types = await response.json();
+                availableTypes = types;
+
+                // Populate types dropdown
+                populateTypeMenu(types);
+
+                typeDropdown.disabled = false;
+                document.getElementById('typeLabel').textContent = 'Select Types...';
+            } catch (error) {
+                console.error('Error loading types:', error);
+                document.getElementById('typeLabel').textContent = 'Error loading';
+            }
+        }
+
+        // Populate Type Menu
+        function populateTypeMenu(types) {
+            const optionsContainer = document.getElementById('typeOptions');
+            optionsContainer.innerHTML = '';
+
+            if (types.length === 0) {
+                document.getElementById('typeNoResults').classList.add('show');
+                return;
+            }
+
+            document.getElementById('typeNoResults').classList.remove('show');
+
+            types.forEach(type => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.setAttribute('data-value', type.name.toLowerCase());
+                option.innerHTML = `
+                    <input type="checkbox" value="${type.name}" id="type-${type.name}">
+                    <label for="type-${type.name}">${type.name}</label>
+                `;
+                optionsContainer.appendChild(option);
+
+                const checkbox = option.querySelector('input');
+                checkbox.addEventListener('change', () => {
+                    updateTypeSelection();
+                    updateDropdownLabel('typeOptions', 'typeLabel');
+                });
+            });
+        }
+
+        // Clear Type Menu
+        function clearTypeMenu() {
+            const optionsContainer = document.getElementById('typeOptions');
+            optionsContainer.innerHTML = '';
+            document.getElementById('typeSearch').value = '';
+        }
+
+        // Setup Dropdown Search
+        function setupDropdownSearch(searchInputId, optionsContainerId, noResultsId) {
+            const searchInput = document.getElementById(searchInputId);
+            const optionsContainer = document.getElementById(optionsContainerId);
+            const noResultsEl = document.getElementById(noResultsId);
+
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const options = optionsContainer.querySelectorAll('.dropdown-option');
+                let visibleCount = 0;
+
+                options.forEach(option => {
+                    const value = option.getAttribute('data-value') || '';
+                    if (searchTerm === '' || value.includes(searchTerm)) {
+                        option.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        option.classList.add('hidden');
+                    }
+                });
+
+                // Show/hide no results message
+                if (visibleCount === 0 && options.length > 0) {
+                    noResultsEl.classList.add('show');
+                } else {
+                    noResultsEl.classList.remove('show');
+                }
+            });
+
+            // Prevent dropdown from closing when clicking on search input
+            searchInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Clear search when dropdown closes
+            document.addEventListener('click', () => {
+                if (!searchInput.closest('.dropdown-menu').classList.contains('show')) {
+                    searchInput.value = '';
+                    const options = optionsContainer.querySelectorAll('.dropdown-option');
+                    options.forEach(option => option.classList.remove('hidden'));
+                    noResultsEl.classList.remove('show');
+                }
+            });
         }
 
         // Initialize Event Listeners
         function initializeEventListeners() {
+            // Setup Search for Dropdowns
+            setupDropdownSearch('projectSearch', 'projectOptions', 'projectNoResults');
+            setupDropdownSearch('typeSearch', 'typeOptions', 'typeNoResults');
+            setupDropdownSearch('componentSearch', 'componentOptions', 'componentNoResults');
+
             // Time Range Change
             document.getElementById('timeRange').addEventListener('change', (e) => {
                 const customDateRange = document.getElementById('customDateRange');
                 if (e.target.value === 'custom') {
-                    customDateRange.style.display = 'grid';
+                    customDateRange.style.display = 'inline-flex';
+                    // Set default dates (last 30 days to today)
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - 30);
+                    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
                 } else {
                     customDateRange.style.display = 'none';
                 }
+            });
+
+            // Apply Date Button (for custom date range)
+            document.getElementById('applyDateBtn').addEventListener('click', () => {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('Start date must be before end date');
+                    return;
+                }
+                applyFilters();
             });
 
             // Apply Filters
@@ -1005,7 +1654,7 @@
             }
 
             const timeRange = document.getElementById('timeRange').value;
-            let startDate, endDate;
+            let startDate = null, endDate = null;
 
             if (timeRange === 'custom') {
                 startDate = document.getElementById('startDate').value;
@@ -1014,13 +1663,15 @@
                     alert('Please select both start and end dates');
                     return;
                 }
-            } else {
+            } else if (timeRange && timeRange !== '') {
+                // Only calculate dates if a specific time range is selected (not "All Time")
                 const daysBack = parseInt(timeRange);
                 endDate = new Date().toISOString().split('T')[0];
                 const start = new Date();
                 start.setDate(start.getDate() - daysBack);
                 startDate = start.toISOString().split('T')[0];
             }
+            // If timeRange is empty ("All Time"), startDate and endDate remain null
 
             showLoading();
 
@@ -1028,10 +1679,16 @@
                 const params = new URLSearchParams({
                     projects: selectedProjects.join(','),
                     types: selectedTypes.join(','),
-                    components: selectedComponents.join(','),
-                    startDate: startDate,
-                    endDate: endDate
+                    components: selectedComponents.join(',')
                 });
+
+                // Only add date parameters if they are set
+                if (startDate) {
+                    params.append('startDate', startDate);
+                }
+                if (endDate) {
+                    params.append('endDate', endDate);
+                }
 
                 const response = await fetch(`/api/tickets/dashboard-data?${params}`);
                 if (!response.ok) throw new Error('Failed to fetch dashboard data');
@@ -1048,7 +1705,7 @@
         // Reset Filters
         function resetFilters() {
             // Uncheck all checkboxes
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.dropdown-options-container input[type="checkbox"]').forEach(cb => cb.checked = false);
             
             // Reset selections
             selectedProjects = [];
@@ -1057,25 +1714,35 @@
             
             // Reset labels
             document.getElementById('projectLabel').textContent = 'Select Projects...';
-            document.getElementById('typeLabel').textContent = 'Select Types...';
+            document.getElementById('typeLabel').textContent = 'Select Projects First...';
             document.getElementById('componentLabel').textContent = 'Select Projects First...';
             
-            // Disable components
+            // Clear all search inputs
+            document.getElementById('projectSearch').value = '';
+            document.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('hidden'));
+            document.querySelectorAll('.no-results').forEach(el => el.classList.remove('show'));
+            
+            // Disable type and components dropdowns
+            document.getElementById('typeDropdown').disabled = true;
             document.getElementById('componentDropdown').disabled = true;
+            clearTypeMenu();
             clearComponentMenu();
             
             // Reset time range
             document.getElementById('timeRange').value = '30';
             document.getElementById('customDateRange').style.display = 'none';
             
-            // Clear dashboard
+            // Clear dashboard - hide all data sections
+            document.getElementById('summarySection').style.display = 'none';
             document.getElementById('componentsSection').style.display = 'none';
+            document.getElementById('timestamp').classList.remove('show');
             document.getElementById('emptyState').style.display = 'block';
         }
 
         // Show Loading
         function showLoading() {
             document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('summarySection').style.display = 'none';
             document.getElementById('componentsSection').style.display = 'none';
             document.getElementById('emptyState').style.display = 'none';
         }
@@ -1091,10 +1758,36 @@
 
             if (!data.components || data.components.length === 0) {
                 document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('summarySection').style.display = 'none';
+                document.getElementById('componentsSection').style.display = 'none';
                 return;
             }
 
+            // Calculate totals from components
+            let totalTickets = 0, totalOpen = 0, totalClosed = 0;
+            data.components.forEach(comp => {
+                totalTickets += comp.total || 0;
+                totalOpen += comp.open || 0;
+                totalClosed += comp.closed || 0;
+            });
+
+            const resolutionRate = totalTickets > 0 ? Math.round((totalClosed / totalTickets) * 100) : 0;
+
+            // Update summary cards
+            document.getElementById('totalCount').textContent = totalTickets;
+            document.getElementById('openCount').textContent = totalOpen;
+            document.getElementById('closedCount').textContent = totalClosed;
+            document.getElementById('resolutionRate').textContent = `${resolutionRate}%`;
+
+            // Update timestamp
+            const timestampEl = document.getElementById('timestamp');
+            const now = new Date();
+            timestampEl.textContent = `📅 Last updated: ${now.toLocaleString()} | Projects: ${selectedProjects.join(', ')} | Types: ${selectedTypes.join(', ')}`;
+            timestampEl.classList.add('show');
+
+            // Show sections
             document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('summarySection').style.display = 'grid';
             document.getElementById('componentsSection').style.display = 'block';
 
             const grid = document.getElementById('componentsGrid');
@@ -1106,62 +1799,119 @@
             });
         }
 
-        // Create Component Card
+        // Create Component Card - CMI Dashboard Style
         function createComponentCard(component) {
+            const resolutionRate = component.total > 0 
+                ? Math.round((component.closed / component.total) * 100) 
+                : 0;
+
             const card = document.createElement('div');
             card.className = 'component-card';
             card.innerHTML = `
-                <div class="component-header">
-                    <div class="component-icon">📦</div>
+                <div class="component-card-header">
                     <div class="component-name">${component.name}</div>
+                    <div class="component-type">${selectedTypes.join(', ')}</div>
                 </div>
-                <div class="component-stats">
-                    <div class="stat-item total" onclick="showTickets('${component.name}', 'all')">
-                        <div class="stat-value">${component.total}</div>
-                        <div class="stat-label">Total</div>
+                <div class="component-card-body">
+                    <div class="component-stats">
+                        <div class="stat-item total stat-clickable" onclick="showTickets('${component.name}', 'all')">
+                            <div class="stat-value">${component.total}</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item open stat-clickable" onclick="showTickets('${component.name}', 'open')">
+                            <div class="stat-value">${component.open}</div>
+                            <div class="stat-label">Open</div>
+                        </div>
+                        <div class="stat-item resolved stat-clickable" onclick="showTickets('${component.name}', 'closed')">
+                            <div class="stat-value">${component.closed}</div>
+                            <div class="stat-label">Resolved</div>
+                        </div>
                     </div>
-                    <div class="stat-item open" onclick="showTickets('${component.name}', 'open')">
-                        <div class="stat-value">${component.open}</div>
-                        <div class="stat-label">Open</div>
+                    <div class="resolution-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Resolution Rate</span>
+                            <span class="progress-value">${resolutionRate}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${resolutionRate}%"></div>
+                        </div>
                     </div>
-                    <div class="stat-item closed" onclick="showTickets('${component.name}', 'closed')">
-                        <div class="stat-value">${component.closed}</div>
-                        <div class="stat-label">Closed</div>
-                    </div>
+                    <button class="view-all-btn" onclick="showTickets('${component.name}', 'all')">
+                        <span>👁️</span> View All Tickets
+                    </button>
                 </div>
-                <button class="view-all-btn" onclick="showTickets('${component.name}', 'all')">
-                    View All Tickets
-                </button>
             `;
             return card;
         }
 
         // Show Tickets Modal
-        async function showTickets(componentName, statusFilter) {
+        async function showTickets(componentNameOrStatus, statusFilter) {
             const modal = document.getElementById('ticketsModal');
             const modalTitle = document.getElementById('modalTitle');
+            const modalSubtitle = document.getElementById('modalSubtitle');
             const ticketsList = document.getElementById('ticketsList');
 
-            // Set title
-            let titleText = `${componentName} - `;
-            if (statusFilter === 'all') titleText += 'All Tickets';
-            else if (statusFilter === 'open') titleText += 'Open Tickets';
-            else titleText += 'Closed Tickets';
-            modalTitle.textContent = titleText;
+            // Check if this is a summary card click (no status filter passed)
+            let componentName = null;
+            let actualStatusFilter = statusFilter;
+            
+            if (statusFilter === undefined) {
+                // Summary card click - componentNameOrStatus is actually the status filter
+                actualStatusFilter = componentNameOrStatus;
+                componentName = null;
+            } else {
+                componentName = componentNameOrStatus;
+            }
+
+            // Set title with icon
+            let titleIcon = '🐛';
+            let titleText = '';
+            if (componentName) {
+                titleText = `${componentName}`;
+            } else {
+                titleText = 'All';
+            }
+            if (actualStatusFilter === 'all') {
+                titleText += ' Tickets';
+            } else if (actualStatusFilter === 'open') {
+                titleText += ' - Open Tickets';
+                titleIcon = '🔴';
+            } else {
+                titleText += ' - Resolved Tickets';
+                titleIcon = '✅';
+            }
+            modalTitle.innerHTML = `${titleIcon} ${titleText}`;
+
+            // Get time range text for subtitle
+            const timeRange = document.getElementById('timeRange').value;
+            let timeRangeText = 'All Time';
+            if (timeRange === 'custom') {
+                const start = document.getElementById('startDate').value;
+                const end = document.getElementById('endDate').value;
+                timeRangeText = `${start} to ${end}`;
+            } else if (timeRange) {
+                const days = Number.parseInt(timeRange);
+                if (days === 7) timeRangeText = 'Last 7 days';
+                else if (days === 14) timeRangeText = 'Last 14 days';
+                else if (days === 30) timeRangeText = 'Last 30 days';
+                else if (days === 60) timeRangeText = 'Last 60 days';
+                else if (days === 90) timeRangeText = 'Last 90 days';
+                else if (days === 180) timeRangeText = 'Last 6 months';
+                else if (days === 365) timeRangeText = 'Last 1 year';
+            }
 
             // Show loading
-            ticketsList.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading tickets...</p></div>';
+            ticketsList.innerHTML = '<div class="tickets-loading"><div class="spinner"></div><p>Loading tickets...</p></div>';
             modal.classList.add('show');
 
             try {
-                const timeRange = document.getElementById('timeRange').value;
-                let startDate, endDate;
+                let startDate = null, endDate = null;
 
                 if (timeRange === 'custom') {
                     startDate = document.getElementById('startDate').value;
                     endDate = document.getElementById('endDate').value;
-                } else {
-                    const daysBack = parseInt(timeRange);
+                } else if (timeRange && timeRange !== '') {
+                    const daysBack = Number.parseInt(timeRange);
                     endDate = new Date().toISOString().split('T')[0];
                     const start = new Date();
                     start.setDate(start.getDate() - daysBack);
@@ -1171,63 +1921,128 @@
                 const params = new URLSearchParams({
                     projects: selectedProjects.join(','),
                     types: selectedTypes.join(','),
-                    component: componentName,
-                    statusFilter: statusFilter,
-                    startDate: startDate,
-                    endDate: endDate
+                    statusFilter: actualStatusFilter
                 });
+
+                if (componentName) {
+                    params.append('component', componentName);
+                } else if (selectedComponents.length > 0) {
+                    params.append('components', selectedComponents.join(','));
+                }
+
+                if (startDate) {
+                    params.append('startDate', startDate);
+                }
+                if (endDate) {
+                    params.append('endDate', endDate);
+                }
 
                 const response = await fetch(`/api/tickets/component-tickets?${params}`);
                 if (!response.ok) throw new Error('Failed to fetch tickets');
 
                 const tickets = await response.json();
+                
+                // Update subtitle with ticket count
+                const teamText = componentName ? componentName : 'all teams';
+                modalSubtitle.textContent = `${tickets.length} tickets across ${teamText} | ${timeRangeText}`;
+                
                 renderTicketsList(tickets);
             } catch (error) {
                 console.error('Error fetching tickets:', error);
-                ticketsList.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Failed to load tickets</div></div>';
+                ticketsList.innerHTML = '<div class="tickets-empty"><div class="tickets-empty-icon">⚠️</div><p>Failed to load tickets</p></div>';
             }
         }
 
-        // Render Tickets List
+        // Render Tickets List as Table
         function renderTicketsList(tickets) {
             const ticketsList = document.getElementById('ticketsList');
 
             if (tickets.length === 0) {
-                ticketsList.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No tickets found</div></div>';
+                ticketsList.innerHTML = '<div class="tickets-empty"><div class="tickets-empty-icon">📭</div><p>No tickets found</p></div>';
                 return;
             }
 
+            // Create table
+            const table = document.createElement('table');
+            table.className = 'tickets-table';
+            
+            // Create header
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Title</th>
+                        <th>Component</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assignee</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="ticketsTableBody">
+                </tbody>
+            `;
+
             ticketsList.innerHTML = '';
+            ticketsList.appendChild(table);
+
+            const tbody = document.getElementById('ticketsTableBody');
             tickets.forEach(ticket => {
-                const item = createTicketItem(ticket);
-                ticketsList.appendChild(item);
+                const row = createTicketRow(ticket);
+                tbody.appendChild(row);
             });
         }
 
-        // Create Ticket Item
-        function createTicketItem(ticket) {
-            const item = document.createElement('div');
-            item.className = 'ticket-item';
+        // Create Ticket Row
+        function createTicketRow(ticket) {
+            const row = document.createElement('tr');
 
-            const isOpen = ticket.status !== 'Done' && ticket.status !== 'Closed' && ticket.status !== 'Resolved';
-            const statusClass = isOpen ? 'open' : 'closed';
-            const statusText = isOpen ? 'Open' : 'Closed';
+            // Determine status class
+            const statusLower = (ticket.status || '').toLowerCase();
+            let statusClass = '';
+            if (statusLower === 'done' || statusLower === 'closed' || statusLower === 'resolved') {
+                statusClass = 'closed';
+            } else if (statusLower.includes('progress')) {
+                statusClass = 'in-progress';
+            } else {
+                statusClass = 'open';
+            }
 
-            item.innerHTML = `
-                <div class="ticket-header">
+            // Determine priority class
+            const priorityLower = (ticket.priority || '').toLowerCase();
+            let priorityClass = '';
+            if (priorityLower === 'high' || priorityLower === 'highest') {
+                priorityClass = 'high';
+            } else if (priorityLower === 'medium') {
+                priorityClass = 'medium';
+            } else if (priorityLower === 'low' || priorityLower === 'lowest') {
+                priorityClass = 'low';
+            }
+
+            // Format date
+            const createdDate = ticket.created ? new Date(ticket.created).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            }) : 'N/A';
+
+            // Get component from ticket (if available)
+            const component = ticket.component || 'N/A';
+
+            row.innerHTML = `
+                <td>
                     <a href="https://navex.atlassian.net/browse/${ticket.key}" target="_blank" class="ticket-key">
                         ${ticket.key}
                     </a>
-                    <span class="ticket-status ${statusClass}">${statusText}</span>
-                </div>
-                <div class="ticket-summary">${ticket.summary}</div>
-                <div class="ticket-meta">
-                    <span>📌 ${ticket.type}</span>
-                    <span>📊 ${ticket.status}</span>
-                    <span>📅 ${new Date(ticket.created).toLocaleDateString()}</span>
-                </div>
+                </td>
+                <td class="ticket-title" title="${ticket.summary || ''}">${ticket.summary || 'N/A'}</td>
+                <td><span class="badge badge-component">${component}</span></td>
+                <td><span class="badge badge-status ${statusClass}">${ticket.status || 'Unknown'}</span></td>
+                <td><span class="badge-priority ${priorityClass}">${ticket.priority || 'N/A'}</span></td>
+                <td>${ticket.assignee || 'Unassigned'}</td>
+                <td>${createdDate}</td>
             `;
-            return item;
+            return row;
         }
 
         // Close Modal
