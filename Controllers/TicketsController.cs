@@ -199,7 +199,7 @@ namespace Alt_Support.Controllers
                     
                     _logger.LogInformation($"Querying bugs for team {component}: {jqlQuery}");
                     
-                    var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                    var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 10000);
                     
                     var totalBugs = tickets.Count;
                     var openBugs = tickets.Count(t => 
@@ -293,7 +293,7 @@ namespace Alt_Support.Controllers
                 
                 _logger.LogInformation($"Fetching bugs for team {componentName}: {jqlQuery}");
                 
-                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 10000);
                 
                 // Apply pagination
                 var skip = (page - 1) * pageSize;
@@ -868,7 +868,7 @@ namespace Alt_Support.Controllers
                
                 _logger.LogInformation($"Querying Ethicspoint bugs: {jqlQuery}");
                
-                var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 10000);
                
                 var totalBugs = tickets.Count;
                 var openBugs = tickets.Count(t =>
@@ -978,7 +978,7 @@ namespace Alt_Support.Controllers
                
                 _logger.LogInformation($"Fetching Ethicspoint bugs: {jqlQuery}");
                
-                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                var allTickets = await _jiraService.SearchTicketsAsync(jqlQuery, 10000);
                
                 // Apply pagination
                 var skip = (page - 1) * pageSize;

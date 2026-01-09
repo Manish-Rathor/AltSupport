@@ -94,72 +94,114 @@ namespace Alt_Support.Services
         {
             try
             {
-                _logger.LogInformation($"Executing JQL query: {jqlQuery}");
+                _logger.LogInformation($"Executing JQL query: {jqlQuery} with maxResults: {maxResults}");
                 
-                var requestBody = new
+                var allTickets = new List<TicketInfo>();
+                int startAt = 0;
+                int batchSize = 100; // Jira's recommended page size
+                int totalFetched = 0;
+                
+                while (totalFetched < maxResults)
                 {
-                    jql = jqlQuery,
-                    maxResults = maxResults,
-                    fields = new[] { 
+                    var currentBatchSize = Math.Min(batchSize, maxResults - totalFetched);
+                    var fields = string.Join(",", new[] { 
                         "summary", "description", "issuetype", "status", "priority", 
                         "assignee", "reporter", "project", "labels", "components", 
                         "created", "updated", "resolutiondate", "resolution", "customfield_10144",
                         "customfield_10146", "customfield_10020", "customfield_10074", "customfield_10252",
                         "fixVersions", "customfield_10304"
-                    }
-                };
-
-                var json = JsonSerializer.Serialize(requestBody);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync("/rest/api/3/search/jql", content);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning($"Failed to search tickets with JQL '{jqlQuery}': {response.StatusCode} - {errorContent}");
+                    });
                     
-                    // If we get a 410 or 400, the JQL might be invalid, try a simpler query
-                    if (response.StatusCode == System.Net.HttpStatusCode.Gone || 
-                        response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    var encodedJql = Uri.EscapeDataString(jqlQuery);
+                    var encodedFields = Uri.EscapeDataString(fields);
+                    var url = $"/rest/api/3/search/jql?jql={encodedJql}&startAt={startAt}&maxResults={currentBatchSize}&fields={encodedFields}";
+
+                    var response = await _httpClient.GetAsync(url);
+                    
+                    if (!response.IsSuccessStatusCode)
                     {
-                        _logger.LogInformation("Attempting fallback search with simpler JQL");
-                        // Try a simpler text search without special operators
-                        var simpleJql = ExtractSimpleSearchTerm(jqlQuery);
-                        if (simpleJql != jqlQuery)
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        _logger.LogWarning($"Failed to search tickets with JQL '{jqlQuery}': {response.StatusCode} - {errorContent}");
+                        
+                        // If we get a 410 or 400, the JQL might be invalid, try a simpler query
+                        if (response.StatusCode == System.Net.HttpStatusCode.Gone || 
+                            response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                         {
-                            return await SearchTicketsWithSimpleJql(simpleJql, maxResults);
+                            _logger.LogInformation("Attempting fallback search with simpler JQL");
+                            // Try a simpler text search without special operators
+                            var simpleJql = ExtractSimpleSearchTerm(jqlQuery);
+                            if (simpleJql != jqlQuery)
+                            {
+                                return await SearchTicketsWithSimpleJql(simpleJql, maxResults);
+                            }
                         }
+                        
+                        break;
                     }
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation($"Response content (first 500 chars): {responseContent.Substring(0, Math.Min(500, responseContent.Length))}");
                     
-                    return new List<TicketInfo>();
+                    var options = new JsonSerializerOptions 
+                    { 
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    };
+                    options.Converters.Add(new JiraDateTimeConverter());
+                    options.Converters.Add(new JiraNullableDateTimeConverter());
+                    
+                    var searchResult = JsonSerializer.Deserialize<JiraSearchResponse>(responseContent, options);
+                    
+                    _logger.LogInformation($"Deserialized result - Issues: {searchResult?.Issues?.Count ?? 0}, Total: {searchResult?.Total ?? 0}");
+
+                    if (searchResult?.Issues != null && searchResult.Issues.Count > 0)
+                    {
+                        _logger.LogInformation($"Batch fetched {searchResult.Issues.Count} issues. Total available: {searchResult.Total}, Already fetched: {totalFetched}");
+                        
+                        foreach (var issue in searchResult.Issues)
+                        {
+                            var ticket = ConvertToTicketInfo(issue);
+                            if (ticket != null)
+                            {
+                                allTickets.Add(ticket);
+                                totalFetched++;
+                            }
+                        }
+                        
+                        // Check if we've fetched all available tickets or reached maxResults
+                        // Break if: 1) last batch was smaller than batchSize (no more data), OR
+                        //           2) searchResult.Total is valid and we've fetched all, OR
+                        //           3) we've reached our maxResults limit
+                        if (searchResult.Issues.Count < batchSize)
+                        {
+                            _logger.LogInformation($"Fetched all available tickets (last batch was {searchResult.Issues.Count}). Total fetched: {totalFetched}, Jira Total: {searchResult.Total}");
+                            break;
+                        }
+                        
+                        if (searchResult.Total > 0 && searchResult.Total <= totalFetched)
+                        {
+                            _logger.LogInformation($"Reached Jira's reported total. Total fetched: {totalFetched}, Jira Total: {searchResult.Total}");
+                            break;
+                        }
+                        
+                        if (totalFetched >= maxResults)
+                        {
+                            _logger.LogInformation($"Reached maxResults limit. Total fetched: {totalFetched}, maxResults: {maxResults}");
+                            break;
+                        }
+                        
+                        startAt += searchResult.Issues.Count;
+                        _logger.LogInformation($"Continuing to next batch. Next startAt: {startAt}, Total fetched so far: {totalFetched}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("No more issues to fetch");
+                        // No more issues to fetch
+                        break;
+                    }
                 }
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var options = new JsonSerializerOptions 
-                { 
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                };
-                options.Converters.Add(new JiraDateTimeConverter());
-                options.Converters.Add(new JiraNullableDateTimeConverter());
-                
-                var searchResult = JsonSerializer.Deserialize<JiraSearchResponse>(responseContent, options);
-
-                var tickets = new List<TicketInfo>();
-                if (searchResult?.Issues != null)
-                {
-                    foreach (var issue in searchResult.Issues)
-                    {
-                        var ticket = ConvertToTicketInfo(issue);
-                        if (ticket != null)
-                        {
-                            tickets.Add(ticket);
-                        }
-                    }
-                }
-
-                _logger.LogInformation($"Found {tickets.Count} tickets for query: {jqlQuery}");
-                return tickets;
+                _logger.LogInformation($"Found {allTickets.Count} tickets for query: {jqlQuery}");
+                return allTickets;
             }
             catch (Exception ex)
             {

@@ -43,8 +43,7 @@ A comprehensive .NET 8 application that automatically analyzes new Jira tickets 
       "Username": "your-email@company.com",
       "ApiToken": "your-jira-api-token",
       "ProjectKey": "SUPPORT",
-      "TargetProjects": ["SUPPORT", "BUG", "STORY"],
-      "MaxHistoricalTickets": 1000
+      "TargetProjects": ["SUPPORT", "BUG", "STORY"]
     }
   }
 }

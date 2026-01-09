@@ -154,7 +154,7 @@ namespace Alt_Support.Services
                 {
                     _logger.LogInformation($"Syncing project: {projectKey}");
 
-                    var tickets = await _jiraService.GetProjectTicketsAsync(projectKey, _config.Jira.MaxHistoricalTickets);
+                    var tickets = await _jiraService.GetProjectTicketsAsync(projectKey, 1000);
                     
                     if (tickets.Any())
                     {
@@ -191,7 +191,7 @@ namespace Alt_Support.Services
 
             foreach (var ticket in similarTickets.Take(5)) // Limit to top 5 for readability
             {
-                comment += $"• **{ticket.TicketKey}** - {ticket.Title}\n";
+                comment += $"ï¿½ **{ticket.TicketKey}** - {ticket.Title}\n";
                 comment += $"  ?? Similarity: {ticket.SimilarityScore:P0} ({ticket.MatchReason})\n";
                 comment += $"  ?? Created: {ticket.CreatedDate:yyyy-MM-dd}";
                 

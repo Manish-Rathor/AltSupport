@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Level Dashboard - Alt Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #f0abfc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 1.15rem;
+            font-weight: 500;
+        }
+
+        .header-info {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .time-range-filter {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-range-filter label {
+            color: #94a3b8;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .time-range-filter select {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .time-range-filter select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .time-range-filter select option {
+            background: #1e293b;
+            color: white;
+        }
+
+        .custom-date-range {
+            display: none;
+            gap: 10px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-date-range input {
+            padding: 8px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .custom-date-range input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .custom-date-range input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-refresh {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-refresh:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #94a3b8;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .category-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .category-name {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .category-count {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 14px;
+            font-size: 1.8rem;
+            font-weight: 800;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .category-preview {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.8;
+        }
+
+        .category-preview div {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .category-preview div:last-child {
+            border-bottom: none;
+        }
+
+        .ticket-key {
+            display: inline-block;
+            background: var(--light);
+            padding: 4px 10px;
+            border-radius: 8px;
+            margin-right: 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 1400px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 24px 30px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            background: rgba(255,255,255,0.3);
+            transform: rotate(90deg);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .filter-input,
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .filter-select {
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn-clear {
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear:hover {
+            background: #f1f5f9;
+            border-color: var(--primary);
+        }
+
+        .filter-badge {
+            display: none;
+            padding: 6px 12px;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 20px 30px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 0;
+        }
+
+        .pagination button {
+            padding: 10px 20px;
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button:not(:disabled):hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .pagination span {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .tickets-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tickets-table thead tr {
+            background: #f1f5f9;
+            position: sticky;
+            top: 0;
+        }
+
+        .tickets-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .tickets-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tickets-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .tickets-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .ticket-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .ticket-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-open { background: #ef4444; }
+        .status-in-progress { background: #f59e0b; }
+        .status-resolved { background: #10b981; }
+        .status-closed { background: #8b5cf6; }
+        .status-default { background: #94a3b8; }
+
+        .priority-badge {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .fix-version-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .fix-version-set {
+            background: #8b5cf6;
+        }
+
+        .fix-version-na {
+            background: #94a3b8;
+        }
+
+        .nav-back {
+            margin-bottom: 20px;
+        }
+
+        .nav-back a {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .nav-back a:hover {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="nav-back">
+            <a href="index.html">← Back to Home</a>
+        </div>
+
+        <div class="header">
+            <h1>Dashboard - Application Level</h1>
+            <p>Production Support Tickets by Category</p>
+            
+            <div class="header-info">
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Tickets</div>
+                        <div class="stat-value" id="totalTickets">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Categories</div>
+                        <div class="stat-value" id="totalCategories">-</div>
+                    </div>
+                <div class="stat-item">
+                    <div class="stat-label">Processing Time</div>
+                    <div class="stat-value" id="processingTime">-</div>
+                </div>
+            </div>
+            <div class="controls">
+                <div class="time-range-filter">
+                    <label>Time Range:</label>
+                    <select id="timeRangeSelect" onchange="handleTimeRangeChange()">
+                        <option value="all">All Time</option>
+                        <option value="7">Last 7 Days</option>
+                        <option value="14">Last 14 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="60">Last 60 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+                <div class="custom-date-range" id="customDateRange">
+                    <input type="date" id="startDate" onchange="applyCustomDateRange()" />
+                    <span style="color: white;">to</span>
+                    <input type="date" id="endDate" onchange="applyCustomDateRange()" />
+                </div>
+                <button class="btn btn-refresh" onclick="refreshDashboard()">🔄 Refresh</button>
+                <button class="btn btn-primary" onclick="loadDashboard()">📊 Reload</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading dashboard data...</p>
+    </div>
+
+    <div id="errorContainer"></div>
+
+    <div id="dashboardGrid" class="dashboard-grid"></div>
+    </div>
+
+    <!-- Modal for ticket details -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modalTitle">Category Tickets</div>
+                    <div id="modalSubtitle" style="font-size: 0.9rem; margin-top: 5px; opacity: 0.9;"></div>
+                </div>
+                <button class="close" onclick="closeModal()">×</button>
+            </div>
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="filter-grid">
+                    <input type="text" id="modalSearchInput" placeholder="🔍 Search ticket #, title, assignee..." class="filter-input">
+                    <select id="modalStatusFilter" class="filter-select">
+                        <option value="">All Statuses</option>
+                    </select>
+                    <select id="modalPriorityFilter" class="filter-select">
+                        <option value="">All Priorities</option>
+                    </select>
+                    <select id="modalAssigneeFilter" class="filter-select">
+                        <option value="">All Assignees</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button id="clearFiltersBtn" class="btn-clear">Clear Filters</button>
+                    <span id="filterCountBadge" class="filter-badge"></span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div id="modalLoadingIndicator" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Loading tickets...</p>
+                </div>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dashboardData = null;
+        let currentCategory = null;
+        let currentPage = 1;
+        const pageSize = 50;
+        let currentTimeRange = '30'; // Default to last 30 days
+        let customStartDate = null;
+        let customEndDate = null;
+        let allCategoryTickets = []; // Store all tickets for filtering
+        let filteredTickets = []; // Store filtered tickets
+
+        // Load dashboard on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorContainer = document.getElementById('errorContainer');
+            const dashboardGrid = document.getElementById('dashboardGrid');
+
+            try {
+                loadingIndicator.style.display = 'block';
+                errorContainer.innerHTML = '';
+                dashboardGrid.innerHTML = '';
+
+                // Build query parameters
+                let url = '/api/dashboard/application-level';
+                const params = new URLSearchParams();
+                
+                if (currentTimeRange === 'custom' && customStartDate && customEndDate) {
+                    params.append('startDate', customStartDate);
+                    params.append('endDate', customEndDate);
+                } else if (currentTimeRange !== 'all') {
+                    const days = parseInt(currentTimeRange);
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - days);
+                    params.append('startDate', startDate.toISOString().split('T')[0]);
+                    params.append('endDate', endDate.toISOString().split('T')[0]);
+                }
+                
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+
+                const responseText = await response.text();
+                console.log('API Response:', responseText);
+                
+                dashboardData = JSON.parse(responseText);
+                console.log('Parsed dashboard data:', dashboardData);
+                
+                // Validate response structure
+                if (!dashboardData || typeof dashboardData !== 'object') {
+                    console.error('Invalid response structure. Received:', dashboardData);
+                    throw new Error('Invalid response format - expected object, got: ' + typeof dashboardData);
+                }
+                
+                if (!dashboardData.categories || !Array.isArray(dashboardData.categories)) {
+                    console.error('Categories missing or invalid. Dashboard data:', dashboardData);
+                    throw new Error('Categories data is missing or invalid. Check console for details.');
+                }
+                
+                // Update header stats
+                document.getElementById('totalTickets').textContent = dashboardData.totalTickets || 0;
+                document.getElementById('totalCategories').textContent = dashboardData.categories.length;
+                document.getElementById('processingTime').textContent = `${dashboardData.processingTimeMs || 0}ms`;
+
+                // Render categories
+                renderCategories();
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                errorContainer.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> Failed to load dashboard data. ${error.message}
+                    </div>
+                `;
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function renderCategories() {
+            const dashboardGrid = document.getElementById('dashboardGrid');
+            dashboardGrid.innerHTML = '';
+
+            if (!dashboardData || !dashboardData.categories || !Array.isArray(dashboardData.categories)) {
+                dashboardGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #999;">No categories available</div>';
+                return;
+            }
+
+            dashboardData.categories.forEach(category => {
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.onclick = () => openCategoryModal(category.name);
+
+                // Get first 3 tickets for preview
+                const previewTickets = category.tickets.slice(0, 3);
+                const preview = previewTickets.length > 0
+                    ? previewTickets.map(t => `<div><span class="ticket-key">${t.ticketKey}</span> ${truncate(t.title, 50)}</div>`).join('')
+                    : '<div>No tickets in this category</div>';
+
+                card.innerHTML = `
+                    <div class="category-header">
+                        <div class="category-name">${category.name}</div>
+                        <div class="category-count">${category.count}</div>
+                    </div>
+                    <div class="category-preview">
+                        ${preview}
+                        ${category.count > 3 ? `<div style="margin-top: 10px; color: #667eea; font-weight: 600;">+ ${category.count - 3} more tickets</div>` : ''}
+                    </div>
+                `;
+
+                dashboardGrid.appendChild(card);
+            });
+        }
+
+        async function openCategoryModal(categoryName) {
+            currentCategory = categoryName;
+            currentPage = 1;
+            
+            const modal = document.getElementById('ticketModal');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            modalTitle.textContent = categoryName;
+            modal.style.display = 'block';
+            
+            await loadCategoryTickets();
+        }
+
+        async function loadCategoryTickets() {
+            const modalLoadingIndicator = document.getElementById('modalLoadingIndicator');
+            const modalContent = document.getElementById('modalContent');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+
+            try {
+                modalLoadingIndicator.style.display = 'block';
+                modalContent.innerHTML = '';
+
+                // Build query parameters with date range
+                const params = new URLSearchParams();
+                params.append('page', '1');
+                params.append('pageSize', '10000');
+                
+                if (currentTimeRange === 'custom' && customStartDate && customEndDate) {
+                    params.append('startDate', customStartDate);
+                    params.append('endDate', customEndDate);
+                } else if (currentTimeRange !== 'all') {
+                    const days = parseInt(currentTimeRange);
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - days);
+                    params.append('startDate', startDate.toISOString().split('T')[0]);
+                    params.append('endDate', endDate.toISOString().split('T')[0]);
+                }
+
+                // Fetch ALL tickets for this category (not just first page)
+                // We'll use a large pageSize to get all tickets at once for client-side filtering
+                const response = await fetch(`/api/dashboard/category/${encodeURIComponent(currentCategory)}?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                allCategoryTickets = data.tickets || [];
+                filteredTickets = [...allCategoryTickets];
+                
+                console.log(`Loaded ${allCategoryTickets.length} tickets for category: ${currentCategory}`);
+                
+                // Setup filter dropdowns (only once when modal opens)
+                setupFilters();
+                
+                // Render tickets
+                renderTicketTable();
+
+            } catch (error) {
+                console.error('Error loading category tickets:', error);
+                modalContent.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> Failed to load tickets. ${error.message}
+                    </div>
+                `;
+            } finally {
+                modalLoadingIndicator.style.display = 'none';
+            }
+        }
+
+        function setupFilters() {
+            const searchInput = document.getElementById('modalSearchInput');
+            const statusFilterSelect = document.getElementById('modalStatusFilter');
+            const priorityFilterSelect = document.getElementById('modalPriorityFilter');
+            const assigneeFilterSelect = document.getElementById('modalAssigneeFilter');
+            const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+            
+            // Clear existing options except first
+            statusFilterSelect.innerHTML = '<option value="">All Statuses</option>';
+            priorityFilterSelect.innerHTML = '<option value="">All Priorities</option>';
+            assigneeFilterSelect.innerHTML = '<option value="">All Assignees</option>';
+            
+            // Populate filter dropdowns with unique values
+            const statuses = [...new Set(allCategoryTickets.map(t => t.status).filter(Boolean))].sort();
+            const priorities = [...new Set(allCategoryTickets.map(t => t.priority).filter(Boolean))].sort();
+            const assignees = [...new Set(allCategoryTickets.map(t => t.assignee).filter(Boolean))].sort();
+            
+            statuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status;
+                statusFilterSelect.appendChild(option);
+            });
+            
+            priorities.forEach(priority => {
+                const option = document.createElement('option');
+                option.value = priority;
+                option.textContent = priority;
+                priorityFilterSelect.appendChild(option);
+            });
+            
+            assignees.forEach(assignee => {
+                const option = document.createElement('option');
+                option.value = assignee;
+                option.textContent = assignee;
+                assigneeFilterSelect.appendChild(option);
+            });
+            
+            // Add event listeners
+            searchInput.addEventListener('input', applyFilters);
+            statusFilterSelect.addEventListener('change', applyFilters);
+            priorityFilterSelect.addEventListener('change', applyFilters);
+            assigneeFilterSelect.addEventListener('change', applyFilters);
+            clearFiltersBtn.addEventListener('click', clearFilters);
+        }
+
+        function applyFilters() {
+            const searchInput = document.getElementById('modalSearchInput');
+            const statusFilterSelect = document.getElementById('modalStatusFilter');
+            const priorityFilterSelect = document.getElementById('modalPriorityFilter');
+            const assigneeFilterSelect = document.getElementById('modalAssigneeFilter');
+            const filterCountBadge = document.getElementById('filterCountBadge');
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedStatus = statusFilterSelect.value;
+            const selectedPriority = priorityFilterSelect.value;
+            const selectedAssignee = assigneeFilterSelect.value;
+            
+            filteredTickets = allCategoryTickets.filter(ticket => {
+                // Search filter
+                if (searchTerm) {
+                    const searchableText = [
+                        ticket.ticketKey || '',
+                        ticket.title || '',
+                        ticket.assignee || '',
+                        ticket.status || '',
+                        ticket.priority || ''
+                    ].join(' ').toLowerCase();
+                    
+                    if (!searchableText.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+                
+                // Status filter
+                if (selectedStatus && ticket.status !== selectedStatus) {
+                    return false;
+                }
+                
+                // Priority filter
+                if (selectedPriority && ticket.priority !== selectedPriority) {
+                    return false;
+                }
+                
+                // Assignee filter
+                if (selectedAssignee && ticket.assignee !== selectedAssignee) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Update filter count badge
+            const activeFilterCount = [searchTerm, selectedStatus, selectedPriority, selectedAssignee].filter(f => f).length;
+            if (activeFilterCount > 0) {
+                filterCountBadge.textContent = `${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} active`;
+                filterCountBadge.style.display = 'inline-block';
+            } else {
+                filterCountBadge.style.display = 'none';
+            }
+            
+            renderTicketTable();
+        }
+
+        function clearFilters() {
+            document.getElementById('modalSearchInput').value = '';
+            document.getElementById('modalStatusFilter').value = '';
+            document.getElementById('modalPriorityFilter').value = '';
+            document.getElementById('modalAssigneeFilter').value = '';
+            document.getElementById('filterCountBadge').style.display = 'none';
+            
+            filteredTickets = [...allCategoryTickets];
+            renderTicketTable();
+        }
+
+        function renderTicketTable() {
+            const modalContent = document.getElementById('modalContent');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+            
+            // Update subtitle
+            if (filteredTickets.length !== allCategoryTickets.length) {
+                modalSubtitle.textContent = `Showing ${filteredTickets.length} of ${allCategoryTickets.length} tickets (filtered)`;
+            } else {
+                modalSubtitle.textContent = `Showing ${allCategoryTickets.length} tickets`;
+            }
+            
+            if (filteredTickets.length === 0) {
+                modalContent.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No tickets found matching the filters.</p>';
+                return;
+            }
+            
+            // Render tickets table
+            const table = document.createElement('table');
+            table.className = 'tickets-table';
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assignee</th>
+                        <th>Fix Version</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filteredTickets.map(ticket => `
+                        <tr>
+                            <td>
+                                <a href="${ticket.jiraUrl}" target="_blank" class="ticket-link">
+                                    ${escapeHtml(ticket.ticketKey)}
+                                </a>
+                            </td>
+                            <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(ticket.title)}">
+                                ${escapeHtml(ticket.title)}
+                            </td>
+                            <td>
+                                <span class="status-badge ${getStatusClass(ticket.status)}">
+                                    ${escapeHtml(ticket.status)}
+                                </span>
+                            </td>
+                            <td class="priority-badge">${escapeHtml(ticket.priority || 'N/A')}</td>
+                            <td>${escapeHtml(ticket.assignee || 'Unassigned')}</td>
+                            <td>
+                                <span class="fix-version-badge ${ticket.fixVersions && ticket.fixVersions.length > 0 ? 'fix-version-set' : 'fix-version-na'}">
+                                    ${ticket.fixVersions && ticket.fixVersions.length > 0 ? escapeHtml(ticket.fixVersions.join(', ')) : 'N/A'}
+                                </span>
+                            </td>
+                            <td>${formatDate(ticket.createdDate)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+
+            modalContent.innerHTML = '';
+            modalContent.appendChild(table);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('ticketModal');
+            modal.style.display = 'none';
+            currentCategory = null;
+            currentPage = 1;
+            allCategoryTickets = [];
+            filteredTickets = [];
+            
+            // Clear filters
+            document.getElementById('modalSearchInput').value = '';
+            document.getElementById('modalStatusFilter').value = '';
+            document.getElementById('modalPriorityFilter').value = '';
+            document.getElementById('modalAssigneeFilter').value = '';
+            document.getElementById('filterCountBadge').style.display = 'none';
+        }
+
+        function handleTimeRangeChange() {
+            const select = document.getElementById('timeRangeSelect');
+            const customDateRange = document.getElementById('customDateRange');
+            
+            currentTimeRange = select.value;
+            
+            if (currentTimeRange === 'custom') {
+                customDateRange.style.display = 'flex';
+                // Set default dates if not already set
+                if (!customStartDate || !customEndDate) {
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - 30);
+                    
+                    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                    
+                    customStartDate = document.getElementById('startDate').value;
+                    customEndDate = document.getElementById('endDate').value;
+                }
+            } else {
+                customDateRange.style.display = 'none';
+                loadDashboard();
+            }
+        }
+
+        function applyCustomDateRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (startDate && endDate) {
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('Start date must be before end date');
+                    return;
+                }
+                
+                customStartDate = startDate;
+                customEndDate = endDate;
+                loadDashboard();
+            }
+        }
+
+        async function refreshDashboard() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Refreshing...';
+
+            try {
+                const response = await fetch('/api/dashboard/refresh', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                await loadDashboard();
+                alert('Dashboard refreshed successfully!');
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+                alert(`Failed to refresh dashboard: ${error.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 Refresh';
+            }
+        }
+
+        function truncate(str, length) {
+            return str.length > length ? str.substring(0, length) + '...' : str;
+        }
+
+        function getStatusClass(status) {
+            const statusLower = status.toLowerCase();
+            if (statusLower.includes('open') || statusLower.includes('new')) return 'status-open';
+            if (statusLower.includes('progress')) return 'status-in-progress';
+            if (statusLower.includes('resolved') || statusLower.includes('done')) return 'status-resolved';
+            if (statusLower.includes('closed')) return 'status-closed';
+            return 'status-default';
+        }
+
+        function getPriorityClass(priority) {
+            const priorityLower = priority.toLowerCase();
+            if (priorityLower.includes('highest') || priorityLower.includes('critical')) return 'priority-highest';
+            if (priorityLower.includes('high')) return 'priority-high';
+            if (priorityLower.includes('medium')) return 'priority-medium';
+            if (priorityLower.includes('low')) return 'priority-low';
+            return 'priority-default';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('ticketModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
