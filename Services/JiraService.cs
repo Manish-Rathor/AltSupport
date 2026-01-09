@@ -15,6 +15,8 @@ namespace Alt_Support.Services
         Task<bool> AddCommentToTicketAsync(string ticketKey, string comment);
         Task<bool> UpdateTicketCustomFieldAsync(string ticketKey, string fieldId, object value);
         Task<List<TicketInfo>> SearchTicketsAsync(string jqlQuery, int maxResults = 100);
+        Task<List<string>> GetProjectComponentsAsync(IEnumerable<string> projectKeys);
+        Task<List<JiraProject>> GetAvailableProjectsAsync();
     }
 
     public class JiraService : IJiraService
@@ -884,6 +886,88 @@ namespace Alt_Support.Services
                 }
             }
         }
+
+        public async Task<List<string>> GetProjectComponentsAsync(IEnumerable<string> projectKeys)
+        {
+            var allComponents = new List<string>();
+
+            try
+            {
+                foreach (var projectKey in projectKeys)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Fetching components for project: {projectKey}");
+                        
+                        var response = await _httpClient.GetAsync($"/rest/api/3/project/{projectKey}/components");
+                        
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _logger.LogWarning($"Failed to get components for project {projectKey}: {response.StatusCode}");
+                            continue;
+                        }
+
+                        var content = await response.Content.ReadAsStringAsync();
+                        var components = JsonSerializer.Deserialize<List<JiraComponent>>(content, new JsonSerializerOptions 
+                        { 
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+                        });
+
+                        if (components != null && components.Any())
+                        {
+                            allComponents.AddRange(components.Select(c => c.Name));
+                            _logger.LogInformation($"Found {components.Count} components for project {projectKey}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error fetching components for project {projectKey}");
+                    }
+                }
+
+                return allComponents.Distinct().OrderBy(c => c).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching project components");
+                return new List<string>();
+            }
+        }
+
+        public async Task<List<JiraProject>> GetAvailableProjectsAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Fetching available Jira projects");
+                
+                var response = await _httpClient.GetAsync("/rest/api/3/project/search?maxResults=100");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning($"Failed to get projects: {response.StatusCode}");
+                    return new List<JiraProject>();
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<JiraProjectSearchResult>(content, new JsonSerializerOptions 
+                { 
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase 
+                });
+
+                if (result?.Values != null && result.Values.Any())
+                {
+                    _logger.LogInformation($"Found {result.Values.Count} projects");
+                    return result.Values.OrderBy(p => p.Name).ToList();
+                }
+
+                return new List<JiraProject>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching available projects");
+                return new List<JiraProject>();
+            }
+        }
     }
 
     // Jira API Response Models
@@ -896,6 +980,27 @@ namespace Alt_Support.Services
     public class JiraSearchResponse
     {
         public List<JiraIssueResponse>? Issues { get; set; }
+        public int Total { get; set; }
+    }
+
+    public class JiraComponent
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class JiraProject
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Key { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class JiraProjectSearchResult
+    {
+        public List<JiraProject>? Values { get; set; }
         public int Total { get; set; }
     }
 }

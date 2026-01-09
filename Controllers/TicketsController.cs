@@ -1023,5 +1023,337 @@ namespace Alt_Support.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Search tickets using JQL (Jira Query Language)
+        /// </summary>
+        [HttpGet("search/jql")]
+        public async Task<ActionResult> SearchByJql(
+            [FromQuery] string jql,
+            [FromQuery] int maxResults = 1000)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(jql))
+                {
+                    return BadRequest("JQL query is required");
+                }
+
+                _logger.LogInformation($"Executing JQL query: {jql}");
+
+                var tickets = await _jiraService.SearchTicketsAsync(jql, maxResults);
+
+                var response = new
+                {
+                    Jql = jql,
+                    MaxResults = maxResults,
+                    TotalResults = tickets.Count,
+                    Tickets = tickets.Select(t => new
+                    {
+                        t.TicketKey,
+                        t.Title,
+                        t.Description,
+                        t.TicketType,
+                        t.Status,
+                        t.Priority,
+                        t.Assignee,
+                        t.Reporter,
+                        t.ProjectKey,
+                        t.Labels,
+                        t.Components,
+                        t.CreatedDate,
+                        t.UpdatedDate,
+                        t.ResolvedDate,
+                        t.Resolution,
+                        t.FixVersions,
+                        JiraUrl = $"https://navex.atlassian.net/browse/{t.TicketKey}"
+                    })
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing JQL query: {Jql}", jql);
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get available Jira projects
+        /// </summary>
+        [HttpGet("projects")]
+        public async Task<ActionResult> GetProjects()
+        {
+            try
+            {
+                _logger.LogInformation("Fetching available Jira projects");
+
+                var projects = await _jiraService.GetAvailableProjectsAsync();
+                
+                return Ok(projects.Select(p => new
+                {
+                    p.Key,
+                    p.Name
+                }).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching projects");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get available components for selected projects
+        /// </summary>
+        [HttpGet("components")]
+        public async Task<ActionResult<List<string>>> GetComponents([FromQuery] string projects)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(projects))
+                {
+                    return BadRequest("Projects parameter is required");
+                }
+
+                var projectList = projects.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                _logger.LogInformation($"Fetching components for projects: {string.Join(", ", projectList)}");
+
+                var allComponents = await _jiraService.GetProjectComponentsAsync(projectList);
+                
+                return Ok(allComponents.Distinct().OrderBy(c => c).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching components");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get dashboard data for custom dashboard with filters
+        /// </summary>
+        [HttpGet("dashboard-data")]
+        public async Task<ActionResult> GetDashboardData(
+            [FromQuery] string projects,
+            [FromQuery] string types,
+            [FromQuery] string? components = null,
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(projects) || string.IsNullOrEmpty(types))
+                {
+                    return BadRequest("Projects and Types parameters are required");
+                }
+
+                var projectList = projects.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var typeList = types.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var componentList = string.IsNullOrEmpty(components) 
+                    ? new string[0] 
+                    : components.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                _logger.LogInformation($"Fetching dashboard data - Projects: {projects}, Types: {types}, Components: {components}");
+
+                // If no components selected, get all components for the selected projects
+                List<string> componentsToQuery;
+                if (componentList.Length == 0)
+                {
+                    componentsToQuery = await _jiraService.GetProjectComponentsAsync(projectList);
+                }
+                else
+                {
+                    componentsToQuery = componentList.ToList();
+                }
+
+                var componentStats = new List<object>();
+
+                foreach (var component in componentsToQuery)
+                {
+                    // Build JQL query
+                    var jqlParts = new List<string>();
+                    
+                    // Projects
+                    if (projectList.Length == 1)
+                    {
+                        jqlParts.Add($"project = \"{projectList[0]}\"");
+                    }
+                    else
+                    {
+                        jqlParts.Add($"project in ({string.Join(",", projectList.Select(p => $"\"{p}\""))})");
+                    }
+
+                    // Types
+                    if (typeList.Length == 1)
+                    {
+                        jqlParts.Add($"type = \"{typeList[0]}\"");
+                    }
+                    else
+                    {
+                        jqlParts.Add($"type in ({string.Join(",", typeList.Select(t => $"\"{t}\""))})");
+                    }
+
+                    // Component
+                    jqlParts.Add($"component = \"{component}\"");
+
+                    // Date range
+                    if (!string.IsNullOrEmpty(startDate))
+                    {
+                        jqlParts.Add($"created >= \"{startDate}\"");
+                    }
+                    if (!string.IsNullOrEmpty(endDate))
+                    {
+                        jqlParts.Add($"created <= \"{endDate}\"");
+                    }
+
+                    var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+                    
+                    _logger.LogInformation($"Querying component {component}: {jqlQuery}");
+                    
+                    var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+                    
+                    var totalTickets = tickets.Count;
+                    var openTickets = tickets.Count(t => 
+                        t.Status != "Done" && 
+                        t.Status != "Closed" && 
+                        t.Status != "Resolved");
+                    var closedTickets = totalTickets - openTickets;
+
+                    componentStats.Add(new
+                    {
+                        Name = component,
+                        Total = totalTickets,
+                        Open = openTickets,
+                        Closed = closedTickets
+                    });
+                }
+
+                // Sort by total tickets descending
+                var sortedStats = componentStats
+                    .OrderByDescending(s => ((dynamic)s).Total)
+                    .ToList();
+
+                var response = new
+                {
+                    GeneratedAt = DateTime.UtcNow,
+                    Filters = new
+                    {
+                        Projects = projectList,
+                        Types = typeList,
+                        Components = componentList,
+                        StartDate = startDate,
+                        EndDate = endDate
+                    },
+                    Components = sortedStats
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching dashboard data");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Get tickets for a specific component with filters
+        /// </summary>
+        [HttpGet("component-tickets")]
+        public async Task<ActionResult> GetComponentTickets(
+            [FromQuery] string projects,
+            [FromQuery] string types,
+            [FromQuery] string component,
+            [FromQuery] string statusFilter = "all",
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(projects) || string.IsNullOrEmpty(types) || string.IsNullOrEmpty(component))
+                {
+                    return BadRequest("Projects, Types, and Component parameters are required");
+                }
+
+                var projectList = projects.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var typeList = types.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                _logger.LogInformation($"Fetching tickets for component {component} with status filter: {statusFilter}");
+
+                // Build JQL query
+                var jqlParts = new List<string>();
+                
+                // Projects
+                if (projectList.Length == 1)
+                {
+                    jqlParts.Add($"project = \"{projectList[0]}\"");
+                }
+                else
+                {
+                    jqlParts.Add($"project in ({string.Join(",", projectList.Select(p => $"\"{p}\""))})");
+                }
+
+                // Types
+                if (typeList.Length == 1)
+                {
+                    jqlParts.Add($"type = \"{typeList[0]}\"");
+                }
+                else
+                {
+                    jqlParts.Add($"type in ({string.Join(",", typeList.Select(t => $"\"{t}\""))})");
+                }
+
+                // Component
+                jqlParts.Add($"component = \"{component}\"");
+
+                // Status filter
+                if (statusFilter == "open")
+                {
+                    jqlParts.Add("status NOT IN (Done, Closed, Resolved)");
+                }
+                else if (statusFilter == "closed")
+                {
+                    jqlParts.Add("status IN (Done, Closed, Resolved)");
+                }
+
+                // Date range
+                if (!string.IsNullOrEmpty(startDate))
+                {
+                    jqlParts.Add($"created >= \"{startDate}\"");
+                }
+                if (!string.IsNullOrEmpty(endDate))
+                {
+                    jqlParts.Add($"created <= \"{endDate}\"");
+                }
+
+                var jqlQuery = string.Join(" AND ", jqlParts) + " ORDER BY created DESC";
+                
+                _logger.LogInformation($"JQL Query: {jqlQuery}");
+                
+                var tickets = await _jiraService.SearchTicketsAsync(jqlQuery, 1000);
+
+                var response = tickets.Select(t => new
+                {
+                    Key = t.TicketKey,
+                    Summary = t.Title,
+                    Type = t.TicketType,
+                    Status = t.Status,
+                    Priority = t.Priority,
+                    Created = t.CreatedDate,
+                    Updated = t.UpdatedDate,
+                    Assignee = t.Assignee,
+                    Reporter = t.Reporter
+                }).ToList();
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching component tickets");
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
 }
