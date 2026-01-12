@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Custom Dashboard - Alt Support</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -1048,6 +1049,98 @@
             color: #94a3b8;
             font-size: 1.1rem;
         }
+
+        /* Charts Section */
+        .charts-section {
+            margin-bottom: 40px;
+            display: none;
+        }
+
+        .charts-section.show {
+            display: block;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-filter label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .chart-filter select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chart-filter select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-card-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1198,6 +1291,50 @@
             </div>
         </div>
 
+        <!-- Charts Section -->
+        <section class="charts-section" id="chartsSection">
+            <h2 class="section-title">
+                <span>📊</span> Analytics & Charts
+            </h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-title">
+                            <span>📊</span> Tickets by Component
+                        </div>
+                        <div class="chart-filter">
+                            <label for="chartTypeFilter">View:</label>
+                            <select id="chartTypeFilter">
+                                <option value="bar">Bar Chart</option>
+                                <option value="horizontalBar">Horizontal Bar</option>
+                                <option value="doughnut">Doughnut</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="ticketsByComponentChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-card-header">
+                        <div class="chart-title">
+                            <span>🎯</span> Open vs Resolved
+                        </div>
+                        <div class="chart-filter">
+                            <label for="componentChartFilter">Component:</label>
+                            <select id="componentChartFilter">
+                                <option value="all">All Components</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="openVsResolvedChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Components Section -->
         <div class="components-section" id="componentsSection" style="display: none;">
             <div class="section-title">
@@ -1240,6 +1377,10 @@
         let availableComponents = [];
         let availableTypes = [];
         let dashboardData = {};
+
+        // Chart instances
+        let ticketsByComponentChart = null;
+        let openVsResolvedChart = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1734,15 +1875,27 @@
             
             // Clear dashboard - hide all data sections
             document.getElementById('summarySection').style.display = 'none';
+            document.getElementById('chartsSection').classList.remove('show');
             document.getElementById('componentsSection').style.display = 'none';
             document.getElementById('timestamp').classList.remove('show');
             document.getElementById('emptyState').style.display = 'block';
+
+            // Destroy chart instances
+            if (ticketsByComponentChart) {
+                ticketsByComponentChart.destroy();
+                ticketsByComponentChart = null;
+            }
+            if (openVsResolvedChart) {
+                openVsResolvedChart.destroy();
+                openVsResolvedChart = null;
+            }
         }
 
         // Show Loading
         function showLoading() {
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('summarySection').style.display = 'none';
+            document.getElementById('chartsSection').classList.remove('show');
             document.getElementById('componentsSection').style.display = 'none';
             document.getElementById('emptyState').style.display = 'none';
         }
@@ -1759,6 +1912,7 @@
             if (!data.components || data.components.length === 0) {
                 document.getElementById('emptyState').style.display = 'block';
                 document.getElementById('summarySection').style.display = 'none';
+                document.getElementById('chartsSection').classList.remove('show');
                 document.getElementById('componentsSection').style.display = 'none';
                 return;
             }
@@ -1796,6 +1950,328 @@
             data.components.forEach(component => {
                 const card = createComponentCard(component);
                 grid.appendChild(card);
+            });
+
+            // Render charts
+            renderCharts(data);
+        }
+
+        // Render Charts
+        function renderCharts(data) {
+            if (!data.components || data.components.length === 0) {
+                document.getElementById('chartsSection').classList.remove('show');
+                return;
+            }
+
+            document.getElementById('chartsSection').classList.add('show');
+
+            // Populate component filter dropdown for the second chart
+            populateComponentChartFilter(data.components);
+
+            // Render both charts
+            renderTicketsByComponentChart('bar');
+            renderOpenVsResolvedChart('all');
+
+            // Setup chart filter event listeners
+            setupChartFilters();
+        }
+
+        // Populate Component Chart Filter
+        function populateComponentChartFilter(components) {
+            const filter = document.getElementById('componentChartFilter');
+            // Keep the "All Components" option and clear the rest
+            filter.innerHTML = '<option value="all">All Components</option>';
+            
+            components.forEach(comp => {
+                const option = document.createElement('option');
+                option.value = comp.name;
+                option.textContent = comp.name;
+                filter.appendChild(option);
+            });
+        }
+
+        // Render Tickets by Component Chart
+        function renderTicketsByComponentChart(chartType = 'bar') {
+            const ctx = document.getElementById('ticketsByComponentChart');
+            if (!ctx || !dashboardData.components) return;
+
+            // Destroy existing chart
+            if (ticketsByComponentChart) {
+                ticketsByComponentChart.destroy();
+            }
+
+            const components = dashboardData.components;
+            const labels = components.map(c => c.name);
+            
+            const chartColors = {
+                total: { bg: 'rgba(99, 102, 241, 0.8)', border: 'rgb(99, 102, 241)' },
+                open: { bg: 'rgba(239, 68, 68, 0.8)', border: 'rgb(239, 68, 68)' },
+                resolved: { bg: 'rgba(16, 185, 129, 0.8)', border: 'rgb(16, 185, 129)' }
+            };
+
+            if (chartType === 'doughnut') {
+                // Doughnut chart showing total tickets per component
+                ticketsByComponentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: components.map(c => c.total),
+                            backgroundColor: [
+                                'rgba(99, 102, 241, 0.8)',
+                                'rgba(139, 92, 246, 0.8)',
+                                'rgba(236, 72, 153, 0.8)',
+                                'rgba(244, 63, 94, 0.8)',
+                                'rgba(249, 115, 22, 0.8)',
+                                'rgba(234, 179, 8, 0.8)',
+                                'rgba(16, 185, 129, 0.8)',
+                                'rgba(6, 182, 212, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(168, 85, 247, 0.8)',
+                                'rgba(236, 72, 153, 0.8)',
+                                'rgba(251, 146, 60, 0.8)'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: { size: 11, family: 'Plus Jakarta Sans' }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const comp = components[context.dataIndex];
+                                        const rate = comp.total > 0 ? Math.round((comp.closed / comp.total) * 100) : 0;
+                                        return `${context.label}: ${comp.total} tickets (${rate}% resolved)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Bar chart (vertical or horizontal)
+                const isHorizontal = chartType === 'horizontalBar';
+                
+                ticketsByComponentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Total',
+                                data: components.map(c => c.total),
+                                backgroundColor: chartColors.total.bg,
+                                borderColor: chartColors.total.border,
+                                borderWidth: 2,
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Open',
+                                data: components.map(c => c.open),
+                                backgroundColor: chartColors.open.bg,
+                                borderColor: chartColors.open.border,
+                                borderWidth: 2,
+                                borderRadius: 6
+                            },
+                            {
+                                label: 'Resolved',
+                                data: components.map(c => c.closed),
+                                backgroundColor: chartColors.resolved.bg,
+                                borderColor: chartColors.resolved.border,
+                                borderWidth: 2,
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: isHorizontal ? 'y' : 'x',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: { size: 12, family: 'Plus Jakarta Sans' }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                                titleFont: { size: 13, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: !isHorizontal, color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { size: 11, family: 'Plus Jakarta Sans' } }
+                            },
+                            y: {
+                                grid: { display: isHorizontal, color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { size: 11, family: 'Plus Jakarta Sans' } },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Render Open vs Resolved Chart
+        function renderOpenVsResolvedChart(componentFilter = 'all') {
+            const ctx = document.getElementById('openVsResolvedChart');
+            if (!ctx || !dashboardData.components) return;
+
+            // Destroy existing chart
+            if (openVsResolvedChart) {
+                openVsResolvedChart.destroy();
+            }
+
+            let openTickets, resolvedTickets;
+
+            if (componentFilter === 'all') {
+                // Sum all components
+                openTickets = dashboardData.components.reduce((sum, c) => sum + c.open, 0);
+                resolvedTickets = dashboardData.components.reduce((sum, c) => sum + c.closed, 0);
+            } else {
+                // Find specific component
+                const comp = dashboardData.components.find(c => c.name === componentFilter);
+                if (!comp) return;
+                openTickets = comp.open;
+                resolvedTickets = comp.closed;
+            }
+
+            const total = openTickets + resolvedTickets;
+            const openPercent = total > 0 ? ((openTickets / total) * 100).toFixed(1) : 0;
+            const resolvedPercent = total > 0 ? ((resolvedTickets / total) * 100).toFixed(1) : 0;
+
+            openVsResolvedChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Open Tickets', 'Resolved Tickets'],
+                    datasets: [{
+                        data: [openTickets, resolvedTickets],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.85)',
+                            'rgba(16, 185, 129, 0.85)'
+                        ],
+                        borderColor: ['rgb(239, 68, 68)', 'rgb(16, 185, 129)'],
+                        borderWidth: 3,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: { size: 12, family: 'Plus Jakarta Sans', weight: '600' },
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => ({
+                                        text: `${label}: ${data.datasets[0].data[i]} (${i === 0 ? openPercent : resolvedPercent}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].borderColor[i],
+                                        lineWidth: 2,
+                                        pointStyle: 'circle',
+                                        hidden: false,
+                                        index: i
+                                    }));
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.raw;
+                                    const percent = context.dataIndex === 0 ? openPercent : resolvedPercent;
+                                    return `${value} tickets (${percent}%)`;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'centerText',
+                    beforeDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+                        const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+
+                        ctx.save();
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+
+                        // Total number
+                        ctx.font = 'bold 28px Plus Jakarta Sans';
+                        ctx.fillStyle = '#1e293b';
+                        ctx.fillText(total, centerX, centerY - 10);
+
+                        // Label
+                        ctx.font = '500 12px Plus Jakarta Sans';
+                        ctx.fillStyle = '#64748b';
+                        ctx.fillText('Total Tickets', centerX, centerY + 15);
+
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // Setup Chart Filters
+        function setupChartFilters() {
+            const chartTypeFilter = document.getElementById('chartTypeFilter');
+            const componentChartFilter = document.getElementById('componentChartFilter');
+
+            // Remove existing listeners by replacing elements
+            const newChartTypeFilter = chartTypeFilter.cloneNode(true);
+            chartTypeFilter.parentNode.replaceChild(newChartTypeFilter, chartTypeFilter);
+            
+            const newComponentChartFilter = componentChartFilter.cloneNode(true);
+            componentChartFilter.parentNode.replaceChild(newComponentChartFilter, componentChartFilter);
+
+            // Re-populate component filter (it was cloned)
+            if (dashboardData.components) {
+                newComponentChartFilter.innerHTML = '<option value="all">All Components</option>';
+                dashboardData.components.forEach(comp => {
+                    const option = document.createElement('option');
+                    option.value = comp.name;
+                    option.textContent = comp.name;
+                    newComponentChartFilter.appendChild(option);
+                });
+            }
+
+            // Add new listeners
+            newChartTypeFilter.addEventListener('change', (e) => {
+                renderTicketsByComponentChart(e.target.value);
+            });
+
+            newComponentChartFilter.addEventListener('change', (e) => {
+                renderOpenVsResolvedChart(e.target.value);
             });
         }
 
