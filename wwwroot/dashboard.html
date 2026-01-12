@@ -775,8 +775,7 @@
             <div class="filter-group">
                 <label for="daysFilter">📅 Time Range:</label>
                 <select id="daysFilter">
-                    <option value="">All Time</option>
-                    <option value="7">Last 7 Days</option>
+                    <option value="7" selected>Last 7 Days</option>
                     <option value="14">Last 14 Days</option>
                     <option value="30" selected>Last 30 Days</option>
                     <option value="60">Last 60 Days</option>
@@ -934,7 +933,7 @@
                     const daysBack = this.daysFilter.value;
                     this.timestampEl.innerHTML = `
                         <strong>Last Updated:</strong> ${date.toLocaleString()} 
-                        ${daysBack ? `| <strong>Showing:</strong> Last ${daysBack} days` : '| <strong>Showing:</strong> All Time'}
+                        | <strong>Showing:</strong> Last ${daysBack || this.daysFilter.value} days
                     `;
                 }
             }
