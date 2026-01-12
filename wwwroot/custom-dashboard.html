@@ -372,6 +372,7 @@
         }
 
         select {
+            width: 100%;
             padding: 12px 16px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -380,6 +381,12 @@
             font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        select:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
         }
 
         select:focus {
@@ -1218,8 +1225,7 @@
                 <div class="filter-group">
                     <label>📅 Time Range</label>
                     <select id="timeRange">
-                        <option value="">All Time</option>
-                        <option value="7">Last 7 Days</option>
+                        <option value="7" selected>Last 7 Days</option>
                         <option value="14">Last 14 Days</option>
                         <option value="30" selected>Last 30 Days</option>
                         <option value="60">Last 60 Days</option>
@@ -1804,15 +1810,14 @@
                     alert('Please select both start and end dates');
                     return;
                 }
-            } else if (timeRange && timeRange !== '') {
-                // Only calculate dates if a specific time range is selected (not "All Time")
+            } else if (timeRange) {
+                // Calculate dates based on selected time range
                 const daysBack = parseInt(timeRange);
                 endDate = new Date().toISOString().split('T')[0];
                 const start = new Date();
                 start.setDate(start.getDate() - daysBack);
                 startDate = start.toISOString().split('T')[0];
             }
-            // If timeRange is empty ("All Time"), startDate and endDate remain null
 
             showLoading();
 
@@ -2360,7 +2365,7 @@
 
             // Get time range text for subtitle
             const timeRange = document.getElementById('timeRange').value;
-            let timeRangeText = 'All Time';
+            let timeRangeText = `Last ${timeRange} Days`;
             if (timeRange === 'custom') {
                 const start = document.getElementById('startDate').value;
                 const end = document.getElementById('endDate').value;

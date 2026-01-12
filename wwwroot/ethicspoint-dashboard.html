@@ -135,12 +135,29 @@
             font-weight: 500;
             outline: none;
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:hover,
+        .filter-group input:hover {
+            border-color: var(--accent);
+            background: rgba(20, 184, 166, 0.2);
         }
 
         .filter-group select:focus,
         .filter-group input:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+        }
+
+        .filter-group select option {
+            background: rgba(30, 41, 59, 0.98);
+            color: #e2e8f0;
+            padding: 8px;
+        }
+
+        .filter-group select option:hover {
+            background: rgba(20, 184, 166, 0.2);
         }
 
         .refresh-btn {
@@ -374,8 +391,8 @@
             padding: 8px 14px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
+            background: rgba(30, 41, 59, 0.95);
+            color: #e2e8f0;
             font-size: 0.9rem;
             outline: none;
         }
@@ -387,7 +404,13 @@
         .bug-list-filters input:focus,
         .bug-list-filters select:focus {
             border-color: white;
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(30, 41, 59, 1);
+        }
+
+        .bug-list-filters select option {
+            background: rgba(30, 41, 59, 0.98);
+            color: #e2e8f0;
+            padding: 8px;
         }
 
         .bug-table-container {
@@ -611,8 +634,7 @@
             <div class="filter-group">
                 <label for="daysFilter">📅 Time Range:</label>
                 <select id="daysFilter">
-                    <option value="" selected>All Time</option>
-                    <option value="7">Last 7 Days</option>
+                    <option value="7" selected>Last 7 Days</option>
                     <option value="14">Last 14 Days</option>
                     <option value="30">Last 30 Days</option>
                     <option value="60">Last 60 Days</option>
@@ -743,7 +765,7 @@
                     const date = new Date(this.data.generatedAt);
                     this.timestampEl.innerHTML = `
                         <strong>Last Updated:</strong> ${date.toLocaleString()} 
-                        ${this.data.filteredByDaysBack ? `| <strong>Showing:</strong> Last ${this.data.filteredByDaysBack} days` : '| <strong>Showing:</strong> All Time'}
+                        | <strong>Showing:</strong> Last ${this.data.filteredByDaysBack || this.daysFilter.value} days
                     `;
                 }
             }

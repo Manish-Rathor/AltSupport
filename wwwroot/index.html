@@ -638,10 +638,6 @@
                     <input type="checkbox" id="jiraOnly" checked>
                     <label for="jiraOnly">Search Jira Only</label>
                 </div>
-                <div class="checkbox-group">
-                    <input type="checkbox" id="autoSelect">
-                    <label for="autoSelect">Auto-select first result</label>
-                </div>
             </div>
         </div>
 
@@ -698,7 +694,6 @@
                 this.errorMessage = document.getElementById('errorMessage');
                 this.clearBtn = document.getElementById('clearBtn');
                 this.jiraOnlyCheckbox = document.getElementById('jiraOnly');
-                this.autoSelectCheckbox = document.getElementById('autoSelect');
                 
                 this.debounceTimer = null;
                 this.selectedIndex = -1;
@@ -818,13 +813,6 @@
                     if (this.suggestions.length > 0) {
                         this.renderAutocomplete();
                         this.showAutocomplete();
-                        
-                        // Auto-select first result if enabled
-                        if (this.autoSelectCheckbox.checked) {
-                            setTimeout(() => {
-                                this.selectSuggestion(this.suggestions[0]);
-                            }, 100);
-                        }
                     } else {
                         this.hideAutocomplete();
                     }
