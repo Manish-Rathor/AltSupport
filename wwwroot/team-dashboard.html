@@ -806,8 +806,7 @@
             <div class="filter-group">
                 <label for="daysFilter">📅 Time Range:</label>
                 <select id="daysFilter">
-                    <option value="">All Time</option>
-                    <option value="7">Last 7 Days</option>
+                    <option value="7" selected>Last 7 Days</option>
                     <option value="14">Last 14 Days</option>
                     <option value="30" selected>Last 30 Days</option>
                     <option value="60">Last 60 Days</option>
@@ -953,7 +952,7 @@
             updateTimestamp() {
                 if (this.data && this.data.generatedAt) {
                     const date = new Date(this.data.generatedAt);
-                    let showingText = '| <strong>Showing:</strong> All Time';
+                    let showingText = `| <strong>Showing:</strong> Last ${this.daysFilter.value} days`;
                     
                     if (this.daysFilter.value === 'custom' && this.startDateInput.value && this.endDateInput.value) {
                         showingText = `| <strong>Showing:</strong> ${this.startDateInput.value} to ${this.endDateInput.value}`;
@@ -974,7 +973,7 @@
                 } else if (this.daysFilter.value) {
                     return ` | Last ${this.daysFilter.value} days`;
                 }
-                return ' | All Time';
+                return ` | Last ${this.daysFilter.value} days`;
             }
 
             render() {
