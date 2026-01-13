@@ -24,7 +24,7 @@
             background: white;
             border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .header {
@@ -49,12 +49,15 @@
             background: #f8f9fa;
             border-bottom: 1px solid #dee2e6;
             position: relative;
+            overflow: visible;
+            z-index: 100;
         }
 
         .search-container {
             position: relative;
             max-width: 600px;
             margin: 0 auto;
+            z-index: 1001;
         }
 
         .search-input {
@@ -633,12 +636,6 @@
                 <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
             </div>
             
-            <div class="search-options">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="jiraOnly" checked>
-                    <label for="jiraOnly">Search Jira Only</label>
-                </div>
-            </div>
         </div>
 
         <div class="results-section">
@@ -693,7 +690,6 @@
                 this.ticketContent = document.getElementById('ticketContent');
                 this.errorMessage = document.getElementById('errorMessage');
                 this.clearBtn = document.getElementById('clearBtn');
-                this.jiraOnlyCheckbox = document.getElementById('jiraOnly');
                 
                 this.debounceTimer = null;
                 this.selectedIndex = -1;
@@ -891,14 +887,13 @@
                     this.gridTableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><div class="loading">Searching tickets...</div></td></tr>';
                     this.pagination.innerHTML = '';
                     
-                    const jiraOnly = this.jiraOnlyCheckbox.checked;
                     const params = new URLSearchParams({
                         query: query,
-                        jiraOnly: jiraOnly,
+                        jiraOnly: true,
                         maxResults: 100
                     });
 
-                    const endpoint = jiraOnly ? '/api/tickets/search/jira' : '/api/tickets/search';
+                    const endpoint = '/api/tickets/search/jira';
                     const response = await fetch(`${endpoint}?${params}`);
                     
                     if (!response.ok) {
