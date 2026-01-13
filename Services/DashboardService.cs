@@ -19,10 +19,10 @@ namespace Alt_Support.Services
             new CategoryKeyword { Category = "EPAdmin", Keywords = new[] { "EPAdmin", "epadmin", "EP Admin" } },
             new CategoryKeyword { Category = "Standard Intake", Keywords = new[] { "Standard Intake", "standard intake", "StandardIntake", "Hotline", "hotline" } },
             new CategoryKeyword { Category = "Call Center", Keywords = new[] { "Call Center", "call center", "CallCenter", "Contact center", "contact center", "ContactCenter" } },
-            new CategoryKeyword { Category = "Digital Intake", Keywords = new[] { "Digital Intake", "digital intake", "DI", " di " } },
-            new CategoryKeyword { Category = "Digital Intake Call Center", Keywords = new[] { "Digital Intake Call Center", "DICC", "dicc" } },
-            new CategoryKeyword { Category = "WIF", Keywords = new[] { "WIF", "wif" } },
-            new CategoryKeyword { Category = "Database", Keywords = new[] { "Database", "database", "DB", " db " } },
+            new CategoryKeyword { Category = "Digital Intake", Keywords = new[] { "Digital Intake", "digital intake", "DI" } },
+            new CategoryKeyword { Category = "Digital Intake Call Center", Keywords = new[] { "Digital Intake Call Center", "DICC" } },
+            new CategoryKeyword { Category = "WIF", Keywords = new[] { "WIF" } },
+            new CategoryKeyword { Category = "Database", Keywords = new[] { "Database", "database", "DB" } },
             new CategoryKeyword { Category = "Platforminator", Keywords = new[] { "Platforminator", "platforminator", "Platform" } }
         };
 
@@ -240,16 +240,29 @@ namespace Alt_Support.Services
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(keyword))
                 return 0;
 
-            int count = 0;
-            int index = 0;
-
-            while ((index = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase)) != -1)
+            // For short keywords (like "DI", "DICC"), use word boundary matching to avoid false positives
+            // For longer keywords (like "Digital Intake"), substring matching is fine
+            if (keyword.Length <= 5 && !keyword.Contains(" "))
             {
-                count++;
-                index += keyword.Length;
+                // Use word boundary matching for short keywords
+                var pattern = $@"\b{System.Text.RegularExpressions.Regex.Escape(keyword)}\b";
+                var matches = System.Text.RegularExpressions.Regex.Matches(text, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                return matches.Count;
             }
+            else
+            {
+                // Use substring matching for longer keywords/phrases
+                int count = 0;
+                int index = 0;
 
-            return count;
+                while ((index = text.IndexOf(keyword, index, StringComparison.OrdinalIgnoreCase)) != -1)
+                {
+                    count++;
+                    index += keyword.Length;
+                }
+
+                return count;
+            }
         }
 
         private DashboardTicket ConvertToDashboardTicket(TicketInfo ticket)

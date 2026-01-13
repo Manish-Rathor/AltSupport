@@ -1812,20 +1812,24 @@
 
                 // Determine header style based on filter
                 let headerBg, headerIcon, headerTitle, ticketCount;
+                const teamName = data.team || 'All Applications';
+                
                 if (statusFilter === 'open') {
                     headerBg = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
                     headerIcon = '🔴';
-                    headerTitle = `${data.team} - Open Bugs`;
+                    // Avoid duplication if team name already contains status
+                    headerTitle = teamName.toLowerCase().includes('open') ? teamName : `${teamName} - Open Bugs`;
                     ticketCount = data.tickets ? data.tickets.length : 0;
                 } else if (statusFilter === 'resolved') {
                     headerBg = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
                     headerIcon = '✅';
-                    headerTitle = `${data.team} - Resolved Bugs`;
+                    // Avoid duplication if team name already contains status
+                    headerTitle = teamName.toLowerCase().includes('resolved') ? teamName : `${teamName} - Resolved Bugs`;
                     ticketCount = data.tickets ? data.tickets.length : 0;
                 } else {
                     headerBg = 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)';
                     headerIcon = '🐛';
-                    headerTitle = data.team;
+                    headerTitle = teamName;
                     ticketCount = data.totalBugs;
                 }
 
@@ -2194,30 +2198,303 @@
                 }
 
                 let filteredTickets = [];
+                let modalTitle = '';
+                let modalIcon = '🐛';
                 let statusFilter = 'all';
-                let title = '';
 
                 if (statusType === 'all') {
                     filteredTickets = allTickets;
-                    title = 'All Bugs';
+                    modalTitle = 'All Bugs';
+                    modalIcon = '🐛';
                 } else if (statusType === 'open') {
                     filteredTickets = allTickets.filter(t => !this.isResolved(t.status));
+                    modalTitle = 'Open Bugs';
+                    modalIcon = '🔴';
                     statusFilter = 'open';
-                    title = 'Open Bugs';
                 } else if (statusType === 'resolved') {
                     filteredTickets = allTickets.filter(t => this.isResolved(t.status));
+                    modalTitle = 'Resolved Bugs';
+                    modalIcon = '✅';
                     statusFilter = 'resolved';
-                    title = 'Resolved Bugs';
                 }
 
-                // Prepare modal data
-                const modalData = {
-                    categoryName: title,
-                    tickets: filteredTickets,
-                    totalCount: filteredTickets.length
+                // Calculate open and resolved counts
+                const openCount = allTickets.filter(t => !this.isResolved(t.status)).length;
+                const resolvedCount = allTickets.filter(t => this.isResolved(t.status)).length;
+
+                // Show the filtered bugs modal (similar to CMI Dashboard approach)
+                this.showFilteredBugsModal(filteredTickets, modalTitle, modalIcon, statusFilter, allTickets.length, openCount, resolvedCount);
+            }
+
+            showFilteredBugsModal(tickets, title, icon, statusFilter, totalBugs, openBugs, resolvedBugs) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+
+                const headerBg = statusFilter === 'open' 
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                    : statusFilter === 'resolved'
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)';
+
+                const allTickets = [...tickets];
+                let filteredTickets = [...tickets];
+
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 20px;
+                        max-width: 1400px;
+                        width: 100%;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    ">
+                        <div style="
+                            padding: 24px;
+                            background: ${headerBg};
+                            color: white;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.5rem;">${icon} ${title}</h2>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                                    <span id="filteredModalTicketCount">
+                                        ${tickets.length} tickets across all applications${this.getTimeRangeText()}
+                                    </span>
+                                </p>
+                            </div>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
+                                background: rgba(255,255,255,0.2);
+                                border: none;
+                                color: white;
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.5rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+
+                        <!-- Search and Filter Section -->
+                        <div style="padding: 20px; background: #f8f9fa; border-bottom: 2px solid #e2e8f0;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <input type="text" id="filteredSearchInput" placeholder="🔍 Search ticket #, title, assignee..." style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    outline: none;
+                                ">
+                                <select id="filteredStatusFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Statuses</option>
+                                </select>
+                                <select id="filteredPriorityFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Priorities</option>
+                                </select>
+                                <select id="filteredAssigneeFilter" style="
+                                    padding: 10px 15px;
+                                    border: 2px solid #cbd5e1;
+                                    border-radius: 8px;
+                                    font-size: 0.95rem;
+                                    cursor: pointer;
+                                ">
+                                    <option value="">All Assignees</option>
+                                </select>
+                            </div>
+                            <button id="filteredClearFilters" style="
+                                padding: 8px 16px;
+                                background: white;
+                                border: 2px solid #cbd5e1;
+                                border-radius: 8px;
+                                font-size: 0.9rem;
+                                cursor: pointer;
+                            ">Clear Filters</button>
+                        </div>
+
+                        <!-- Table Container -->
+                        <div style="flex: 1; overflow-y: auto; padding: 0;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 10;">
+                                    <tr>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Ticket</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Title</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Status</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Priority</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Assignee</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Fix Version</th>
+                                        <th style="padding: 15px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0;">Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="filteredTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Get filter elements
+                const searchInput = modal.querySelector('#filteredSearchInput');
+                const statusFilterSelect = modal.querySelector('#filteredStatusFilter');
+                const priorityFilterSelect = modal.querySelector('#filteredPriorityFilter');
+                const assigneeFilterSelect = modal.querySelector('#filteredAssigneeFilter');
+                const clearFiltersBtn = modal.querySelector('#filteredClearFilters');
+                const tableBody = modal.querySelector('#filteredTableBody');
+                const ticketCountSpan = modal.querySelector('#filteredModalTicketCount');
+
+                // Populate filter options
+                const statuses = [...new Set(allTickets.map(t => t.status).filter(Boolean))];
+                const priorities = [...new Set(allTickets.map(t => t.priority).filter(Boolean))];
+                const assignees = [...new Set(allTickets.map(t => t.assignee).filter(Boolean))];
+
+                statuses.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s;
+                    option.textContent = s;
+                    statusFilterSelect.appendChild(option);
+                });
+
+                priorities.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    option.textContent = p;
+                    priorityFilterSelect.appendChild(option);
+                });
+
+                assignees.forEach(a => {
+                    const option = document.createElement('option');
+                    option.value = a;
+                    option.textContent = a;
+                    assigneeFilterSelect.appendChild(option);
+                });
+
+                // Render table function
+                const renderTable = (ticketsToRender) => {
+                    if (ticketsToRender.length > 0) {
+                        tableBody.innerHTML = ticketsToRender.map(ticket => `
+                            <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                                <td style="padding: 12px 15px;">
+                                    <a href="https://navexglobal.atlassian.net/browse/${ticket.ticketKey}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none;">${ticket.ticketKey}</a>
+                                </td>
+                                <td style="padding: 12px 15px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(ticket.title || '')}">${this.escapeHtml(ticket.title || 'No title')}</td>
+                                <td style="padding: 12px 15px;">
+                                    <span style="padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${this.getStatusColor(ticket.status)}; color: white;">${ticket.status || 'N/A'}</span>
+                                </td>
+                                <td style="padding: 12px 15px; color: #64748b;">${ticket.priority || 'N/A'}</td>
+                                <td style="padding: 12px 15px; color: #64748b;">${ticket.assignee || 'Unassigned'}</td>
+                                <td style="padding: 12px 15px;">
+                                    <span style="padding: 4px 10px; border-radius: 15px; font-size: 0.8rem; background: #e0e7ff; color: #4338ca;">${ticket.fixVersions && ticket.fixVersions.length > 0 ? ticket.fixVersions[0] : 'N/A'}</span>
+                                </td>
+                                <td style="padding: 12px 15px; color: #64748b;">${this.formatDate(ticket.createdDate)}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No tickets match the current filters.</td></tr>';
+                    }
                 };
 
-                this.showBugListModal(modalData, statusFilter);
+                // Apply filters function
+                const applyFilters = () => {
+                    const searchTerm = searchInput.value.toLowerCase();
+                    const statusValue = statusFilterSelect.value;
+                    const priorityValue = priorityFilterSelect.value;
+                    const assigneeValue = assigneeFilterSelect.value;
+
+                    filteredTickets = allTickets.filter(ticket => {
+                        const matchesSearch = !searchTerm || 
+                            (ticket.ticketKey && ticket.ticketKey.toLowerCase().includes(searchTerm)) ||
+                            (ticket.title && ticket.title.toLowerCase().includes(searchTerm)) ||
+                            (ticket.assignee && ticket.assignee.toLowerCase().includes(searchTerm));
+                        const matchesStatus = !statusValue || ticket.status === statusValue;
+                        const matchesPriority = !priorityValue || ticket.priority === priorityValue;
+                        const matchesAssignee = !assigneeValue || ticket.assignee === assigneeValue;
+                        return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+                    });
+
+                    // Update count
+                    const timeRangeText = this.getTimeRangeText();
+                    if (filteredTickets.length !== allTickets.length) {
+                        ticketCountSpan.textContent = `Showing ${filteredTickets.length} of ${allTickets.length} tickets (filtered)${timeRangeText}`;
+                    } else {
+                        ticketCountSpan.textContent = `${tickets.length} tickets across all applications${timeRangeText}`;
+                    }
+
+                    renderTable(filteredTickets);
+                };
+
+                // Initial render
+                renderTable(filteredTickets);
+
+                // Add event listeners
+                searchInput.addEventListener('input', applyFilters);
+                statusFilterSelect.addEventListener('change', applyFilters);
+                priorityFilterSelect.addEventListener('change', applyFilters);
+                assigneeFilterSelect.addEventListener('change', applyFilters);
+
+                clearFiltersBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    statusFilterSelect.value = '';
+                    priorityFilterSelect.value = '';
+                    assigneeFilterSelect.value = '';
+                    applyFilters();
+                });
+
+                // Close on backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+
+                // Close on Escape key
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            }
+
+            getTimeRangeText() {
+                if (this.daysFilter.value === 'custom' && this.startDateInput.value && this.endDateInput.value) {
+                    return ` | ${this.startDateInput.value} to ${this.endDateInput.value}`;
+                } else if (this.daysFilter.value) {
+                    return ` | Last ${this.daysFilter.value} days`;
+                }
+                return '';
             }
 
             formatNumber(num) {
