@@ -1119,66 +1119,65 @@
 
                     ${this.renderPRLinks(ticket.prLinks)}
 
-                    <div class="detail-meta">
-                        <div class="meta-item">
-                            <div class="meta-label">Status</div>
-                            <div class="meta-value">${ticket.status || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Priority</div>
-                            <div class="meta-value">${ticket.priority || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">EPIM Priority</div>
-                            <div class="meta-value">${ticket.epimPriority || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Sprint</div>
-                            <div class="meta-value">${ticket.sprint || 'No Sprint'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Deployment Trainstop</div>
-                            <div class="meta-value">${ticket.deploymentTrainstop || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Fix Versions</div>
-                            <div class="meta-value">${ticket.fixVersions && ticket.fixVersions.length > 0 ? ticket.fixVersions.join(', ') : 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Component</div>
-                            <div class="meta-value">${ticket.components && ticket.components.length > 0 ? ticket.components.join(', ') : 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Launch Darkly Toggle</div>
-                            <div class="meta-value">${ticket.launchDarklyToggle || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Assignee</div>
-                            <div class="meta-value">${ticket.assignee || 'Unassigned'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Reporter</div>
-                            <div class="meta-value">${ticket.reporter || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Project</div>
-                            <div class="meta-value">${ticket.projectKey || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Type</div>
-                            <div class="meta-value">${ticket.ticketType || 'N/A'}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Created</div>
-                            <div class="meta-value">${this.formatDate(ticket.createdDate)}</div>
-                        </div>
-                        <div class="meta-item">
-                            <div class="meta-label">Updated</div>
-                            <div class="meta-value">${this.formatDate(ticket.updatedDate)}</div>
+                    ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
+
+                    <div class="pr-links" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 5px solid #667eea;">
+                        <h3>📋 Ticket Details</h3>
+                        <div class="detail-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">Status</div>
+                                <div class="meta-value">${ticket.status || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Priority</div>
+                                <div class="meta-value">${ticket.priority || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">EPIM Priority</div>
+                                <div class="meta-value">${ticket.epimPriority || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Sprint</div>
+                                <div class="meta-value">${ticket.sprint || 'No Sprint'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Deployment Trainstop</div>
+                                <div class="meta-value">${ticket.deploymentTrainstop || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Fix Versions</div>
+                                <div class="meta-value">${ticket.fixVersions && ticket.fixVersions.length > 0 ? ticket.fixVersions.join(', ') : 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Launch Darkly Toggle</div>
+                                <div class="meta-value">${ticket.launchDarklyToggle || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Assignee</div>
+                                <div class="meta-value">${ticket.assignee || 'Unassigned'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Reporter</div>
+                                <div class="meta-value">${ticket.reporter || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Project</div>
+                                <div class="meta-value">${ticket.projectKey || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Type</div>
+                                <div class="meta-value">${ticket.ticketType || 'N/A'}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Created</div>
+                                <div class="meta-value">${this.formatDate(ticket.createdDate)}</div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Updated</div>
+                                <div class="meta-value">${this.formatDate(ticket.updatedDate)}</div>
+                            </div>
                         </div>
                     </div>
-
-                    ${this.renderLabelsAndComponents(ticket.labels, ticket.components)}
 
                     ${this.renderDescription(ticket.description)}
 
