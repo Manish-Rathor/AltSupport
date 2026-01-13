@@ -1608,13 +1608,15 @@
 
             document.getElementById('componentNoResults').classList.remove('show');
 
-            components.forEach(component => {
+            components.forEach((component, index) => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-option';
                 option.setAttribute('data-value', component.toLowerCase());
+                // Sanitize ID to remove spaces and special characters
+                const sanitizedId = `comp-${index}-${component.replace(/[^a-zA-Z0-9]/g, '-')}`;
                 option.innerHTML = `
-                    <input type="checkbox" value="${component}" id="comp-${component}">
-                    <label for="comp-${component}">${component}</label>
+                    <input type="checkbox" value="${component}" id="${sanitizedId}">
+                    <label for="${sanitizedId}">${component}</label>
                 `;
                 optionsContainer.appendChild(option);
 
@@ -1640,15 +1642,30 @@
                 typeDropdown.disabled = true;
                 document.getElementById('typeLabel').textContent = 'Loading...';
 
-                // Get issue types for the first selected project (all projects usually have same issue types)
-                const response = await fetch(`/api/tickets/issue-types/${selectedProjects[0]}`);
-                if (!response.ok) throw new Error('Failed to load issue types');
+                // Get issue types for all selected projects in parallel and merge them
+                const typePromises = selectedProjects.map(project => 
+                    fetch(`/api/tickets/issue-types/${project}`)
+                        .then(res => res.ok ? res.json() : [])
+                        .catch(() => [])
+                );
+                
+                const typesArrays = await Promise.all(typePromises);
+                
+                // Merge and deduplicate types by name
+                const typeNamesSet = new Set();
+                const allTypes = [];
+                
+                typesArrays.flat().forEach(type => {
+                    if (!typeNamesSet.has(type.name)) {
+                        typeNamesSet.add(type.name);
+                        allTypes.push(type);
+                    }
+                });
 
-                const types = await response.json();
-                availableTypes = types;
+                availableTypes = allTypes;
 
                 // Populate types dropdown
-                populateTypeMenu(types);
+                populateTypeMenu(allTypes);
 
                 typeDropdown.disabled = false;
                 document.getElementById('typeLabel').textContent = 'Select Types...';
@@ -1670,13 +1687,15 @@
 
             document.getElementById('typeNoResults').classList.remove('show');
 
-            types.forEach(type => {
+            types.forEach((type, index) => {
                 const option = document.createElement('div');
                 option.className = 'dropdown-option';
                 option.setAttribute('data-value', type.name.toLowerCase());
+                // Sanitize ID to remove spaces and special characters
+                const sanitizedId = `type-${index}-${type.name.replace(/[^a-zA-Z0-9]/g, '-')}`;
                 option.innerHTML = `
-                    <input type="checkbox" value="${type.name}" id="type-${type.name}">
-                    <label for="type-${type.name}">${type.name}</label>
+                    <input type="checkbox" value="${type.name}" id="${sanitizedId}">
+                    <label for="${sanitizedId}">${type.name}</label>
                 `;
                 optionsContainer.appendChild(option);
 
