@@ -1368,6 +1368,9 @@
             }
 
             renderCategoryCard(category, index) {
+                // Check if this is EPIM category to show SubSections button
+                const isEPIM = category.name.toUpperCase() === 'EPIM';
+                
                 return `
                     <div class="team-card">
                         <div class="team-card-header">
@@ -1401,6 +1404,9 @@
                             <button class="view-details-btn" onclick="window.dashboard.viewCategoryDetails('${category.name}', 'all')">
                                 <span>📋</span> View All Bugs
                             </button>
+                            ${isEPIM ? `<button class="view-details-btn" onclick="window.dashboard.viewCategorySubSections('${category.name}')">
+                                <span>📂</span> SubSections
+                            </button>` : ''}
                         </div>
                     </div>
                 `;
@@ -1449,6 +1455,336 @@
                     console.error('Error loading category details:', error);
                     alert('Failed to load category details: ' + error.message);
                 }
+            }
+
+            async viewCategorySubSections(categoryName) {
+                try {
+                    // Find the category data from our already loaded data
+                    const category = this.transformedCategories.find(c => c.name === categoryName);
+                    
+                    if (!category || !category.tickets) {
+                        alert('No tickets found for this category');
+                        return;
+                    }
+                    
+                    // Check if this is EPIM category - show specific subsections
+                    if (categoryName.toUpperCase() === 'EPIM') {
+                        // Initialize EPIM subsections with empty ticket arrays
+                        const epimSubsections = {
+                            'Home widget': { name: 'Home widget', icon: '🏠', tickets: [], totalBugs: 0, openBugs: 0, resolvedBugs: 0 },
+                            'Analytics': { name: 'Analytics', icon: '📊', tickets: [], totalBugs: 0, openBugs: 0, resolvedBugs: 0 },
+                            'Admin': { name: 'Admin', icon: '⚙️', tickets: [], totalBugs: 0, openBugs: 0, resolvedBugs: 0 },
+                            'Case': { name: 'Case', icon: '📋', tickets: [], totalBugs: 0, openBugs: 0, resolvedBugs: 0 },
+                            'Others': { name: 'Others', icon: '📦', tickets: [], totalBugs: 0, openBugs: 0, resolvedBugs: 0 }
+                        };
+                        
+                        // Helper function to check if text contains any keywords
+                        const containsKeywords = (text, keywords) => {
+                            if (!text) return false;
+                            const lowerText = text.toLowerCase();
+                            return keywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
+                        };
+                        
+                        // Assign tickets based on keyword matching in sequence
+                        category.tickets.forEach(ticket => {
+                            // Combine searchable fields
+                            const searchText = [
+                                ticket.title || '',
+                                ticket.summary || '',
+                                ticket.description || '',
+                                ticket.component || '',
+                                ticket.labels ? ticket.labels.join(' ') : ''
+                            ].join(' ');
+                            
+                            let assigned = false;
+                            
+                            // 1. Check Home Widget keywords
+                            if (!assigned && containsKeywords(searchText, ['home', 'widget'])) {
+                                epimSubsections['Home widget'].tickets.push(ticket);
+                                epimSubsections['Home widget'].totalBugs++;
+                                if (this.isResolved(ticket.status)) {
+                                    epimSubsections['Home widget'].resolvedBugs++;
+                                } else {
+                                    epimSubsections['Home widget'].openBugs++;
+                                }
+                                assigned = true;
+                            }
+                            
+                            // 2. Check Analytics keywords
+                            if (!assigned && containsKeywords(searchText, ['premium analytics', 'custom ad hoc report', 'analytics', 'logi', 'preformatted summary', 'PA Logi reports'])) {
+                                epimSubsections['Analytics'].tickets.push(ticket);
+                                epimSubsections['Analytics'].totalBugs++;
+                                if (this.isResolved(ticket.status)) {
+                                    epimSubsections['Analytics'].resolvedBugs++;
+                                } else {
+                                    epimSubsections['Analytics'].openBugs++;
+                                }
+                                assigned = true;
+                            }
+                            
+                            // 3. Check Admin keywords
+                            if (!assigned && containsKeywords(searchText, ['case admin', 'priority keywords', 'users', 'notifications', 'custom field', 'Case Template'])) {
+                                epimSubsections['Admin'].tickets.push(ticket);
+                                epimSubsections['Admin'].totalBugs++;
+                                if (this.isResolved(ticket.status)) {
+                                    epimSubsections['Admin'].resolvedBugs++;
+                                } else {
+                                    epimSubsections['Admin'].openBugs++;
+                                }
+                                assigned = true;
+                            }
+                            
+                            // 4. Check Case keywords
+                            if (!assigned && containsKeywords(searchText, ['case', 'synopsis', 'participants', 'notes', 'attachment'])) {
+                                epimSubsections['Case'].tickets.push(ticket);
+                                epimSubsections['Case'].totalBugs++;
+                                if (this.isResolved(ticket.status)) {
+                                    epimSubsections['Case'].resolvedBugs++;
+                                } else {
+                                    epimSubsections['Case'].openBugs++;
+                                }
+                                assigned = true;
+                            }
+                            
+                            // 5. If not assigned to any category, put in Others
+                            if (!assigned) {
+                                epimSubsections['Others'].tickets.push(ticket);
+                                epimSubsections['Others'].totalBugs++;
+                                if (this.isResolved(ticket.status)) {
+                                    epimSubsections['Others'].resolvedBugs++;
+                                } else {
+                                    epimSubsections['Others'].openBugs++;
+                                }
+                            }
+                        });
+                        
+                        // Convert to array in the desired order
+                        const subsectionArray = [
+                            epimSubsections['Home widget'],
+                            epimSubsections['Analytics'],
+                            epimSubsections['Admin'],
+                            epimSubsections['Case'],
+                            epimSubsections['Others']
+                        ];
+                        
+                        this.showSubSectionsModal(categoryName, subsectionArray, true);
+                        return;
+                    }
+                    
+                    // For non-EPIM categories, group tickets by component/subsection
+                    const subsections = {};
+                    category.tickets.forEach(ticket => {
+                        const component = ticket.component || 'Unassigned';
+                        if (!subsections[component]) {
+                            subsections[component] = {
+                                name: component,
+                                tickets: [],
+                                totalBugs: 0,
+                                openBugs: 0,
+                                resolvedBugs: 0
+                            };
+                        }
+                        subsections[component].tickets.push(ticket);
+                        subsections[component].totalBugs++;
+                        if (this.isResolved(ticket.status)) {
+                            subsections[component].resolvedBugs++;
+                        } else {
+                            subsections[component].openBugs++;
+                        }
+                    });
+                    
+                    // Convert to array and sort by total bugs
+                    const subsectionArray = Object.values(subsections).sort((a, b) => b.totalBugs - a.totalBugs);
+                    
+                    // Show modal with subsections
+                    this.showSubSectionsModal(categoryName, subsectionArray, false);
+                    
+                } catch (error) {
+                    console.error('Error loading category subsections:', error);
+                    alert('Failed to load category subsections: ' + error.message);
+                }
+            }
+
+            showSubSectionsModal(categoryName, subsections, isEPIM = false) {
+                // Store subsections data for click handlers
+                this.currentSubsections = subsections;
+                this.currentCategoryName = categoryName;
+                
+                // Create modal overlay
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                    animation: fadeIn 0.3s ease;
+                `;
+
+                // For EPIM, use 2x2 grid layout, otherwise use auto-fill
+                const gridStyle = isEPIM 
+                    ? 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;'
+                    : 'display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;';
+
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 20px;
+                        max-width: ${isEPIM ? '900px' : '1200px'};
+                        width: 100%;
+                        max-height: 90vh;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    ">
+                        <div style="
+                            padding: 24px;
+                            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+                            color: white;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.5rem;">📂 ${this.escapeHtml(categoryName)} - SubSections</h2>
+                                <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                                    ${subsections.length} subsection${subsections.length !== 1 ? 's' : ''} found
+                                </p>
+                            </div>
+                            <button onclick="this.closest('div').parentElement.parentElement.remove()" style="
+                                background: rgba(255,255,255,0.2);
+                                border: none;
+                                color: white;
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 10px;
+                                cursor: pointer;
+                                font-size: 1.5rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            ">×</button>
+                        </div>
+                        
+                        <div style="flex: 1; overflow-y: auto; padding: 20px;">
+                            <div style="${gridStyle}">
+                                ${subsections.map((subsection, index) => {
+                                    const resolutionRate = subsection.totalBugs > 0 
+                                        ? Math.round((subsection.resolvedBugs / subsection.totalBugs) * 100) 
+                                        : 0;
+                                    
+                                    // Use icon if available (EPIM subsections)
+                                    const displayIcon = subsection.icon || '📁';
+                                    
+                                    return `
+                                        <div data-subsection-index="${index}" style="
+                                            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                                            border: 2px solid #e2e8f0;
+                                            border-radius: 16px;
+                                            padding: 24px;
+                                            transition: all 0.3s ease;
+                                            cursor: pointer;
+                                            ${isEPIM ? 'min-height: 200px;' : ''}
+                                        " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.15)';" 
+                                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+                                           onclick="window.dashboard.viewSubSectionTickets(${index})">
+                                            <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                                <span style="font-size: 2.5rem; margin-right: 12px;">${displayIcon}</span>
+                                                <h3 style="
+                                                    margin: 0;
+                                                    font-size: 1.2rem;
+                                                    color: var(--text-primary);
+                                                    font-weight: 700;
+                                                ">${this.escapeHtml(subsection.name)}</h3>
+                                            </div>
+                                            
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                                                <div style="text-align: center;">
+                                                    <div style="font-size: 1.8rem; font-weight: 800; color: #6366f1;">${subsection.totalBugs}</div>
+                                                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Total</div>
+                                                </div>
+                                                <div style="text-align: center;">
+                                                    <div style="font-size: 1.8rem; font-weight: 800; color: #ef4444;">${subsection.openBugs}</div>
+                                                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Open</div>
+                                                </div>
+                                                <div style="text-align: center;">
+                                                    <div style="font-size: 1.8rem; font-weight: 800; color: #10b981;">${subsection.resolvedBugs}</div>
+                                                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Resolved</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style="margin-bottom: 10px;">
+                                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                                    <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Resolution Rate</span>
+                                                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);">${resolutionRate}%</span>
+                                                </div>
+                                                <div style="
+                                                    background: #e2e8f0;
+                                                    border-radius: 10px;
+                                                    height: 8px;
+                                                    overflow: hidden;
+                                                ">
+                                                    <div style="
+                                                        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+                                                        height: 100%;
+                                                        width: ${resolutionRate}%;
+                                                        transition: width 0.5s ease;
+                                                        border-radius: 10px;
+                                                    "></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Close on backdrop click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Close on Escape key
+                const handleEscape = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                };
+                document.addEventListener('keydown', handleEscape);
+            }
+
+            viewSubSectionTickets(subsectionIndex) {
+                // Get the subsection data
+                const subsection = this.currentSubsections[subsectionIndex];
+                
+                if (!subsection || !subsection.tickets) {
+                    alert('No tickets found for this subsection');
+                    return;
+                }
+                
+                // Prepare modal data
+                const modalData = {
+                    team: `${this.currentCategoryName} - ${subsection.name}`,
+                    totalBugs: subsection.totalBugs,
+                    openBugs: subsection.openBugs,
+                    resolvedBugs: subsection.resolvedBugs,
+                    tickets: subsection.tickets
+                };
+                
+                this.showBugListModal(modalData, 'all');
             }
 
             showBugListModal(data, statusFilter = 'all') {
