@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release & Patch Tracker - Alt Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f172a;
+            min-height: 100vh;
+            color: #e2e8f0;
+            padding: 30px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+            border-radius: 20px;
+            border: 1px solid #334155;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a78bfa, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .nav a {
+            padding: 10px 20px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .nav a:hover {
+            background: #334155;
+            border-color: #6366f1;
+            color: #e2e8f0;
+        }
+        
+        .nav a.active {
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            border-color: transparent;
+            color: white;
+        }
+        
+        /* Ticket Type Selector */
+        .ticket-type-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .ticket-type-btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            background: #1e293b;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ticket-type-btn:hover {
+            border-color: #6366f1;
+            color: #e2e8f0;
+        }
+        
+        .ticket-type-btn.active {
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .ticket-type-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Release Selector */
+        .selector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+        
+        .selector label {
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .selector select {
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-width: 250px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .selector select:hover {
+            border-color: #6366f1;
+        }
+        
+        .selector select:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+        
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .stat {
+            text-align: center;
+            padding: 25px 40px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+            min-width: 150px;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .stat:nth-child(1) .stat-value { color: #a78bfa; }
+        .stat:nth-child(2) .stat-value { color: #38bdf8; }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        /* Table */
+        .tickets-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1e293b;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        
+        .tickets-table th {
+            padding: 18px 20px;
+            text-align: left;
+            background: #0f172a;
+            color: #64748b;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .tickets-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .tickets-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .tickets-table tbody tr:hover {
+            background: rgba(139, 92, 246, 0.08);
+        }
+        
+        .ticket-link {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .ticket-link:hover {
+            text-decoration: underline;
+        }
+        
+        .pr-link {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .pr-link:hover {
+            background: rgba(139, 92, 246, 0.25);
+        }
+        
+        .pr-title {
+            color: #e2e8f0;
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .author {
+            color: #94a3b8;
+        }
+        
+        .date {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 80px;
+            color: #64748b;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #334155;
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 80px;
+            background: #1e293b;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+        
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .empty h3 {
+            font-size: 1.3rem;
+            color: #e2e8f0;
+            margin-bottom: 10px;
+        }
+        
+        .empty p {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Release & Patch Tracker</h1>
+            <p>View merge and patch tickets for each release</p>
+            <nav class="nav">
+                <a href="index.html">🔍 Ticket Search</a>
+                <a href="dashboard.html">📊 App Dashboard</a>
+                <a href="team-dashboard.html">👥 CMI Teams</a>
+                <a href="custom-dashboard.html">🎯 Custom Dashboard</a>
+                <a href="release-branch-dashboard.html" class="active">🚀 Release & Patch</a>
+                <a href="ethicspoint-dashboard.html">🛡️ SusEng Kaveri</a>
+            </nav>
+        </header>
+        
+        <div class="ticket-type-selector">
+            <button class="ticket-type-btn active" id="btnMerge" onclick="selectTicketType('merge')">
+                Merge Tickets
+            </button>
+            <button class="ticket-type-btn disabled" id="btnPatch" onclick="selectTicketType('patch')" title="Coming soon">
+                Patch Tickets
+            </button>
+        </div>
+        
+        <div class="selector">
+            <label>Select Release:</label>
+            <select id="releaseDropdown" onchange="loadReleaseTickets()">
+                <option value="">-- Loading releases --</option>
+            </select>
+        </div>
+        
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat">
+                <div class="stat-value" id="totalPRs">0</div>
+                <div class="stat-label">Merged PRs</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="totalTickets">0</div>
+                <div class="stat-label">Jira Tickets</div>
+            </div>
+        </div>
+        
+        <div id="content">
+            <div class="empty">
+                <div class="empty-icon">📦</div>
+                <h3>Select a Release</h3>
+                <p>Choose a release from the dropdown above to see all merged tickets</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTicketType = 'merge';
+        
+        // Handle ticket type selection
+        function selectTicketType(type) {
+            if (type === 'patch') {
+                // Patch tickets - coming soon
+                alert('Patch Tickets feature coming soon!');
+                return;
+            }
+            
+            currentTicketType = type;
+            
+            // Update button styles
+            document.getElementById('btnMerge').classList.toggle('active', type === 'merge');
+            document.getElementById('btnPatch').classList.toggle('active', type === 'patch');
+            
+            // Reset and reload
+            document.getElementById('releaseDropdown').value = '';
+            document.getElementById('stats').style.display = 'none';
+            document.getElementById('content').innerHTML = `
+                <div class="empty">
+                    <div class="empty-icon">📦</div>
+                    <h3>Select a Release</h3>
+                    <p>Choose a release from the dropdown above to see all ${type} tickets</p>
+                </div>
+            `;
+        }
+        
+        // Load releases on page load
+        async function loadReleases() {
+            const dropdown = document.getElementById('releaseDropdown');
+            
+            try {
+                const response = await fetch('/api/releases/list');
+                if (!response.ok) throw new Error('Failed to load releases');
+                
+                const data = await response.json();
+                
+                dropdown.innerHTML = '<option value="">-- Select a release --</option>';
+                
+                data.releases.forEach(release => {
+                    const option = document.createElement('option');
+                    option.value = release.version;
+                    option.textContent = `Release ${release.version}`;
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                dropdown.innerHTML = '<option value="">Error loading releases - Check GitHub token</option>';
+                console.error('Error:', error);
+            }
+        }
+        
+        // Load tickets for selected release
+        async function loadReleaseTickets() {
+            const dropdown = document.getElementById('releaseDropdown');
+            const content = document.getElementById('content');
+            const stats = document.getElementById('stats');
+            const version = dropdown.value;
+            
+            if (!version) {
+                stats.style.display = 'none';
+                content.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📦</div>
+                        <h3>Select a Release</h3>
+                        <p>Choose a release from the dropdown above to see all merged tickets</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading tickets for Release ${version}...</p>
+                </div>
+            `;
+            stats.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/releases/${version}/tickets`);
+                if (!response.ok) throw new Error('Failed to load tickets');
+                
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('totalPRs').textContent = data.totalPRs;
+                document.getElementById('totalTickets').textContent = data.ticketsWithJiraKey;
+                stats.style.display = 'flex';
+                
+                if (data.tickets.length === 0) {
+                    content.innerHTML = `
+                        <div class="empty">
+                            <div class="empty-icon">📭</div>
+                            <h3>No Merged PRs Found</h3>
+                            <p>No PRs have been merged to release/${version}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Render table
+                content.innerHTML = `
+                    <table class="tickets-table">
+                        <thead>
+                            <tr>
+                                <th>Jira Ticket</th>
+                                <th>Pull Request</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>Merged Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.tickets.map(t => `
+                                <tr>
+                                    <td>
+                                        ${t.ticketKey 
+                                            ? `<a href="${t.jiraUrl}" target="_blank" class="ticket-link">${t.ticketKey}</a>`
+                                            : '<span style="color: #475569;">No ticket</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="${t.prUrl}" target="_blank" class="pr-link">#${t.prNumber}</a>
+                                    </td>
+                                    <td class="pr-title" title="${escapeHtml(t.prTitle)}">${escapeHtml(t.prTitle)}</td>
+                                    <td class="author">${t.author || '-'}</td>
+                                    <td class="date">${formatDate(t.mergedAt)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                content.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">⚠️</div>
+                        <h3>Error Loading Data</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                console.error('Error:', error);
+            }
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Initialize
+        loadReleases();
+    </script>
+</body>
+</html>

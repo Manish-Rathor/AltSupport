@@ -40,6 +40,7 @@ builder.Services.AddScoped<ISimilarityService, SimilarityService>();
 builder.Services.AddScoped<ITicketDataService, TicketDataService>();
 builder.Services.AddScoped<ITicketAnalysisService, TicketAnalysisService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IReleaseBranchService, ReleaseBranchService>();
 
 // Add memory cache for dashboard
 builder.Services.AddMemoryCache();
