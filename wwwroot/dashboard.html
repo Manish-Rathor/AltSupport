@@ -767,6 +767,7 @@
                 <a href="index.html" class="nav-link">🔍 Ticket Search</a>
                 <a href="dashboard.html" class="nav-link active">📊 App Dashboard</a>
                 <a href="team-dashboard.html" class="nav-link">👥 CMI Teams</a>
+                <a href="release-branch-dashboard.html" class="nav-link">🚀 Release & Patch</a>
                 <a href="ethicspoint-dashboard.html" class="nav-link">🛡️ SusEng Kaveri</a>
             </nav>
         </header>
@@ -2406,7 +2407,7 @@
                         tableBody.innerHTML = ticketsToRender.map(ticket => `
                             <tr style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                                 <td style="padding: 12px 15px;">
-                                    <a href="https://navexglobal.atlassian.net/browse/${ticket.ticketKey}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none;">${ticket.ticketKey}</a>
+                                    <a href="https://navex.atlassian.net/browse/${ticket.ticketKey}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none;">${ticket.ticketKey}</a>
                                 </td>
                                 <td style="padding: 12px 15px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${this.escapeHtml(ticket.title || '')}">${this.escapeHtml(ticket.title || 'No title')}</td>
                                 <td style="padding: 12px 15px;">

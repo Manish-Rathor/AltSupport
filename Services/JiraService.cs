@@ -18,6 +18,7 @@ namespace Alt_Support.Services
         Task<List<string>> GetProjectComponentsAsync(IEnumerable<string> projectKeys);
         Task<List<JiraProject>> GetAvailableProjectsAsync();
         Task<List<JiraIssueType>> GetProjectIssueTypesAsync(string projectKey);
+        Task<List<string>> GetDevelopmentPRLinksAsync(string issueId);
     }
 
     public class JiraService : IJiraService
@@ -1060,6 +1061,87 @@ namespace Alt_Support.Services
                 _logger.LogError(ex, $"Error fetching issue types for project {projectKey}");
                 return new List<JiraIssueType>();
             }
+        }
+
+        /// <summary>
+        /// Get PR links from Jira's Development panel (native GitHub/Bitbucket integration)
+        /// </summary>
+        public async Task<List<string>> GetDevelopmentPRLinksAsync(string issueKey)
+        {
+            var prLinks = new List<string>();
+            
+            try
+            {
+                // First, get the issue ID (internal Jira ID, not the key)
+                var issueResponse = await _httpClient.GetAsync($"/rest/api/3/issue/{issueKey}?fields=id");
+                if (!issueResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning($"Failed to get issue ID for {issueKey}");
+                    return prLinks;
+                }
+                
+                var issueJson = await issueResponse.Content.ReadAsStringAsync();
+                using var issueDoc = JsonDocument.Parse(issueJson);
+                var issueId = issueDoc.RootElement.GetProperty("id").GetString();
+                
+                if (string.IsNullOrEmpty(issueId))
+                {
+                    _logger.LogWarning($"Could not extract issue ID for {issueKey}");
+                    return prLinks;
+                }
+                
+                // Use the Dev Status API to get development information
+                var devStatusUrl = $"/rest/dev-status/latest/issue/detail?issueId={issueId}&applicationType=GitHub&dataType=pullrequest";
+                _logger.LogDebug($"Fetching dev status from: {devStatusUrl}");
+                
+                var devResponse = await _httpClient.GetAsync(devStatusUrl);
+                if (!devResponse.IsSuccessStatusCode)
+                {
+                    // Try alternative endpoint
+                    devStatusUrl = $"/rest/dev-status/1.0/issue/detail?issueId={issueId}&applicationType=stash&dataType=pullrequest";
+                    devResponse = await _httpClient.GetAsync(devStatusUrl);
+                }
+                
+                if (!devResponse.IsSuccessStatusCode)
+                {
+                    _logger.LogDebug($"Dev status API returned {devResponse.StatusCode} for {issueKey}");
+                    return prLinks;
+                }
+                
+                var devJson = await devResponse.Content.ReadAsStringAsync();
+                _logger.LogDebug($"Dev status response for {issueKey}: {devJson.Substring(0, Math.Min(500, devJson.Length))}");
+                
+                using var devDoc = JsonDocument.Parse(devJson);
+                
+                // Parse the development info response
+                if (devDoc.RootElement.TryGetProperty("detail", out var detailArray))
+                {
+                    foreach (var detail in detailArray.EnumerateArray())
+                    {
+                        if (detail.TryGetProperty("pullRequests", out var pullRequests))
+                        {
+                            foreach (var pr in pullRequests.EnumerateArray())
+                            {
+                                if (pr.TryGetProperty("url", out var urlElement))
+                                {
+                                    var url = urlElement.GetString();
+                                    if (!string.IsNullOrEmpty(url) && !prLinks.Contains(url))
+                                    {
+                                        prLinks.Add(url);
+                                        _logger.LogInformation($"Found PR link from dev panel for {issueKey}: {url}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Error fetching development PR links for {issueKey}");
+            }
+            
+            return prLinks;
         }
     }
 
